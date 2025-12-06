@@ -1,1 +1,2 @@
-import BSWLean.Basic
+import BSWLean.CNF
+import BSWLean.Treelike
