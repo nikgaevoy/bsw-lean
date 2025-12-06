@@ -52,7 +52,7 @@ abbrev CNFFormula (vars : Variables) := Finset (Clause vars)
 def Literal.eval {vars} (l : Literal vars) (a : Assignment vars) : Bool :=
   match l with
   | .pos v h_v_mem_vars => a v h_v_mem_vars
-  | .neg v h_v_mem_vars => ¬a v h_v_mem_vars
+  | .neg v h_v_mem_vars => !(a v h_v_mem_vars)
 
 def Literal.negate {vars} (l : Literal vars) : (Literal vars) :=
   match l with
@@ -64,7 +64,7 @@ lemma Literal.eval_negate_eq_not_eval {vars} (l : Literal vars) (a : Assignment 
 : l.negate.eval a = ¬ l.eval a := by
   unfold Literal.eval
   unfold Literal.negate
-  simp only [Bool.not_eq_true, Bool.decide_eq_false, eq_iff_iff, Bool.coe_true_iff_false]
+  simp only [Bool.not_eq_true, eq_iff_iff, Bool.coe_true_iff_false]
   cases l
   case pos v h_v_mem_vars =>
     rfl
