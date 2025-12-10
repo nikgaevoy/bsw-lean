@@ -23,6 +23,14 @@ def Literal.variable {vars} (l : Literal vars) : Variable :=
   | .pos v _ => v
   | .neg v _ => v
 
+@[simp]
+lemma Literal.variable_mem_vars {vars} (l : Literal vars) : l.variable ∈ vars := by
+  cases l
+  case pos v h_v_mem_vars =>
+    exact h_v_mem_vars
+  case neg v h_v_mem_vars =>
+    exact h_v_mem_vars
+
 abbrev Clause (vars : Variables) := Finset (Literal vars)
 
 def Clause.variables {vars} (c : Clause vars) : Finset Variable :=
