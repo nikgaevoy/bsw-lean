@@ -78,7 +78,14 @@ def Assignment.restrict {vars} (ρ : Assignment vars)
 lemma Literal.restrict_correctness {vars} (l : Literal vars) (sub_vars : Variables)
   (ρ : Assignment vars) (h_subset : sub_vars ⊆ vars) (h_l : l.variable ∈ sub_vars)
   : l.eval ρ = (l.restrict sub_vars h_l).eval (ρ.restrict sub_vars h_subset) := by
-  sorry
+  unfold Literal.restrict
+  unfold Literal.eval
+  unfold Assignment.restrict
+  cases l
+  case pos v h_v_mem_vars =>
+    simp only
+  case neg v h_v_mem_vars =>
+    simp only
 
 
 def Clause.substitute {vars} (c : Clause vars)
@@ -131,7 +138,7 @@ lemma Clause.split_correctness {vars} (c : Clause vars)
         simp only [Finset.mem_inter, Literal.variable_mem_vars, true_and]
         exact h_l_in_c_in
       ) := by
-        sorry
+        rfl
       have h_l'_in_c_in : l' ∈ (c.split sub_vars).1 := by
         unfold Clause.split
         simp only
@@ -161,7 +168,7 @@ lemma Clause.split_correctness {vars} (c : Clause vars)
         simp only [Finset.mem_sdiff, Literal.variable_mem_vars, true_and]
         exact h_l_in_c_in
       ) := by
-        sorry
+        rfl
       have h_l'_in_c_in : l' ∈ (c.split sub_vars).2 := by
         unfold Clause.split
         simp only
@@ -182,7 +189,34 @@ lemma Clause.split_correctness {vars} (c : Clause vars)
       use l'
 
   case neg =>
-    sorry
+    simp at h_c
+    rw [h_c]
+    simp only [Bool.false_eq, Bool.or_eq_false_iff]
+    constructor
+    · rw [@eval_eq_false_iff_all_falsified_literals]
+      intro l₁ h_l₁_in_c_in
+      rw [Clause.split] at h_l₁_in_c_in
+      unfold Clause.shrink at h_l₁_in_c_in
+      simp only [Finset.mem_filter, Finset.mem_filterMap, Option.dite_none_right_eq_some,
+        Option.some.injEq, and_exists_self] at h_l₁_in_c_in
+      obtain ⟨l₂, h_l₂_in_c, h_l₂_vars⟩ := h_l₁_in_c_in
+      rw [Clause.eval_eq_false_iff_all_falsified_literals] at h_c
+      specialize h_c l₂ h_l₂_in_c.1
+      rw [←h_l₂_vars]
+      rw [←Literal.restrict_correctness l₂ (vars ∩ sub_vars) ρ]
+      trivial
+    · rw [@eval_eq_false_iff_all_falsified_literals]
+      intro l₁ h_l₁_in_c_in
+      rw [Clause.split] at h_l₁_in_c_in
+      unfold Clause.shrink at h_l₁_in_c_in
+      simp only [Finset.mem_filter, Finset.mem_filterMap, Option.dite_none_right_eq_some,
+        Option.some.injEq, and_exists_self] at h_l₁_in_c_in
+      obtain ⟨l₂, h_l₂_in_c, h_l₂_vars⟩ := h_l₁_in_c_in
+      rw [Clause.eval_eq_false_iff_all_falsified_literals] at h_c
+      specialize h_c l₂ h_l₂_in_c.1
+      rw [←h_l₂_vars]
+      rw [←Literal.restrict_correctness l₂ (vars \ sub_vars) ρ]
+      trivial
 
 
 def CNFFormula.substitute {vars} (φ : CNFFormula vars)
