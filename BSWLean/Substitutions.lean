@@ -75,6 +75,14 @@ def Assignment.restrict {vars} (ρ : Assignment vars)
 
   fun v h_v_mem_sub_vars => ρ v (this v h_v_mem_sub_vars)
 
+@[simp]
+lemma Assignment.double_restrict {vars} (ρ : Assignment vars)
+    (sub_vars₁ : Variables) (h_subset₁ : sub_vars₁ ⊆ vars)
+    (sub_vars₂ : Variables) (h_subset₂ : sub_vars₂ ⊆ sub_vars₁)
+  : (ρ.restrict sub_vars₁ h_subset₁).restrict sub_vars₂ h_subset₂ =
+    ρ.restrict sub_vars₂ (by exact fun ⦃a⦄ a_1 ↦ h_subset₁ (h_subset₂ a_1)) := by
+  rfl
+
 lemma Literal.restrict_correctness {vars} (l : Literal vars) (sub_vars : Variables)
   (ρ : Assignment vars) (h_subset : sub_vars ⊆ vars) (h_l : l.variable ∈ sub_vars)
   : l.eval ρ = (l.restrict sub_vars h_l).eval (ρ.restrict sub_vars h_subset) := by
