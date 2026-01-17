@@ -235,6 +235,3 @@ def CNFFormula.substitute {vars} (φ : CNFFormula vars)
   let φ' := (φ.image f).filterMap id
 
   φ' (by exact fun a a' b a_1 a_2 ↦ Option.eq_of_mem_of_mem a_1 a_2)
-
-class Agree {vars₁} {vars₂} (ρ₁ : Assignment vars₁) (ρ₂ : Assignment vars₂) : Prop where
-  h_agree : ∀ v ∈ vars₁ ∩ vars₂, ∀ h₁ h₂, (ρ₁ v h₁) = (ρ₂ v h₂)

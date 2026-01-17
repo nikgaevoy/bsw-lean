@@ -23,6 +23,11 @@ def Literal.variable {vars} (l : Literal vars) : Variable :=
   | .pos v _ => v
   | .neg v _ => v
 
+def Literal.polarity {vars} (l : Literal vars) : Bool :=
+  match l with
+  | .pos _ _ => True
+  | .neg _ _ => False
+
 @[simp]
 lemma Literal.variable_mem_vars {vars} (l : Literal vars) : l.variable ∈ vars := by
   cases l
@@ -78,6 +83,21 @@ lemma Literal.eval_negate_eq_not_eval {vars} (l : Literal vars) (a : Assignment 
     rfl
   case neg v h_v_mem_vars =>
     simp only [Bool.not_not]
+
+@[simp]
+lemma Literal.neg_polarity {vars} (l : Literal vars)
+: l.negate.polarity = ¬l.polarity := by
+  unfold polarity
+  unfold negate
+
+  aesop
+
+@[simp]
+lemma Literal.neg_neg {vars} (l : Literal vars)
+: l.negate.negate = l := by
+  unfold negate
+
+  aesop
 
 def Clause.eval {vars} (c : Clause vars) (a : Assignment vars) : Bool :=
   c.fold (Bool.or) false (fun l => l.eval a)
@@ -164,8 +184,7 @@ lemma Clause.eval_eq_true_iff_exists_satisfied_literal {vars} (c : Clause vars)
         apply h_all_unsat
         exact Finset.mem_insert_of_mem h_l'_in_c'
 
-lemma neg_iff (A : Prop) (B : Prop) : (A ↔ B) ↔ (¬A ↔ ¬B) := by
-  tauto
+lemma neg_iff (A : Prop) (B : Prop) : (A ↔ B) ↔ (¬A ↔ ¬B) := by tauto
 
 lemma CNFFormula.eval_eq_true_iff_all_satisfied_clauses {vars} (φ : CNFFormula vars)
     (a : Assignment vars)
