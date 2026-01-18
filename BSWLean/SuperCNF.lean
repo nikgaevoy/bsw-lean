@@ -221,6 +221,10 @@ def Clause.convert {vars₁ : Variables} (c : Clause vars₁) (vars₂ : Variabl
 
   c.filterMap q this
 
+def Clause.convert_trivial {vars₁ : Variables} (c : Clause vars₁) (vars₂ : Variables)
+    (h_mem : vars₁ = vars₂) : Clause vars₂ :=
+  c.convert vars₂ (by aesop)
+
 class ClauseSubset {vars₁} {vars₂} (c₁ : Clause vars₁) (c₂ : Clause vars₂) : Prop where
   h_subset : ∀ l ∈ c₁, ∃ l' ∈ c₂, LiteralEquiv l l'
 
@@ -605,3 +609,39 @@ lemma convert_agree_eval {vars₁ vars₂} (c₁ : Clause vars₁) (ρ₁ : Assi
     exact
       Agree.h_agree v h_v ((fun v a ↦ Finset.inter_subset_left a) v h₁)
         ((fun v a ↦ Finset.inter_subset_right a) v h₂))
+
+@[simp]
+lemma Clause.convert_trivial_subset {vars₁ : Variables} (c₁ : Clause vars₁) (c₂ : Clause vars₁)
+    (vars₂ : Variables) {h} : c₁ ⊆ c₂ → c₁.convert_trivial vars₂ h ⊆ c₂.convert_trivial vars₂ h
+    := by
+  unfold convert_trivial
+  aesop
+
+@[simp]
+lemma Clause.convert_trivial_subset_insert {vars₁ : Variables} (c₁ : Clause vars₁)
+    (c₂ : Clause vars₁) (vars₂ : Variables) (l : Literal vars₂) {h} :
+    c₁ ⊆ insert (l.convert vars₁ (by aesop)) c₂ →
+    c₁.convert_trivial vars₂ h ⊆ insert l (c₂.convert_trivial vars₂ h) := by
+  unfold convert_trivial
+  aesop
+
+lemma Clause.convert_maintains_subset_insert {vars₁ : Variables} (c₁ : Clause vars₁)
+    (c₂ : Clause vars₁) (vars₂ : Variables) (l : Literal vars₂) (h : l.variable ∈ vars₁) {h₁} {h₂} :
+    c₁ ⊆ insert (l.convert vars₁ h) c₂ →
+    c₁.convert vars₂ h₁ ⊆ insert l (c₂.convert vars₂ h₂) := by
+  intro h_c
+  sorry
+
+def Clause.combine {vars₁} {vars₂} (c₁ : Clause vars₁) (c₂ : Clause vars₂)
+    (h : Disjoint vars₁ vars₂) : Clause (vars₁.disjUnion vars₂ h) :=
+    let vars := (vars₁.disjUnion vars₂ h)
+    let c₁' := c₁.convert vars (by aesop)
+    let c₂' := c₂.convert vars (by aesop)
+
+    c₁' ∪ c₂'
+
+lemma Clause.substitute_combine {vars} {sub_vars} (c : Clause vars) (ρ : Assignment sub_vars)
+    (h_subset : sub_vars ⊆ vars) (h : (c.substitute ρ).isSome)
+: c ⊆ (Clause.combine ((c.substitute ρ).get h)
+                       ρ.toClause Finset.sdiff_disjoint).convert_trivial vars (by aesop) := by
+  sorry

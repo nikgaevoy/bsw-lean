@@ -201,3 +201,7 @@ lemma Clause.eval_eq_false_iff_all_falsified_literals {vars} (c : Clause vars)
   push_neg
   simp only [ne_eq, Bool.not_eq_false]
   exact eval_eq_true_iff_exists_satisfied_literal c a
+
+def Clause.resolve {vars} (c₁ : Clause vars) (c₂ : Clause vars) (x : Variable) (h_x : x ∈ vars)
+: Clause vars :=
+  c₁.erase (x.toLiteral h_x) ∪ c₂.erase (x.toNegLiteral h_x)

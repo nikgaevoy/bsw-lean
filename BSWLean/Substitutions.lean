@@ -97,7 +97,7 @@ lemma Literal.restrict_correctness {vars} (l : Literal vars) (sub_vars : Variabl
 
 
 def Clause.substitute {vars} (c : Clause vars)
-    (sub_vars : Variables) (ρ : Assignment sub_vars)
+    {sub_vars : Variables} (ρ : Assignment sub_vars)
     : Option (Clause (vars \ sub_vars)) :=
   let (c_in, c_out) := Clause.split c sub_vars
 
@@ -108,7 +108,7 @@ def Clause.substitute {vars} (c : Clause vars)
 
 lemma Clause.substitute_eq_none_iff_eval_subclause_true {vars} (c : Clause vars)
     (sub_vars : Variables) (ρ : Assignment sub_vars)
-: c.substitute sub_vars ρ = none ↔
+: c.substitute ρ = none ↔
   (c.split sub_vars).1.eval (ρ.restrict (vars ∩ sub_vars) Finset.inter_subset_right) := by
   unfold Clause.substitute
   constructor
@@ -228,10 +228,17 @@ lemma Clause.split_correctness {vars} (c : Clause vars)
 
 
 def CNFFormula.substitute {vars} (φ : CNFFormula vars)
-    (sub_vars : Variables) (ρ : Assignment sub_vars)
+    {sub_vars : Variables} (ρ : Assignment sub_vars)
     : CNFFormula (vars \ sub_vars) :=
-  let f := fun c : Clause vars => c.substitute sub_vars ρ
+  let f := fun c : Clause vars => c.substitute ρ
 
   let φ' := (φ.image f).filterMap id
 
   φ' (by exact fun a a' b a_1 a_2 ↦ Option.eq_of_mem_of_mem a_1 a_2)
+
+lemma CNFFormula.substitute_preimage {vars} (φ : CNFFormula vars)
+    {sub_vars : Variables} (ρ : Assignment sub_vars)
+    : ∀ c ∈ φ.substitute ρ, ∃ c' ∈ φ, c'.substitute ρ = some c := by
+    intro c h_c
+    unfold CNFFormula.substitute at h_c
+    simp_all only [Finset.mem_filterMap, Finset.mem_image, id_eq, exists_eq_right]
