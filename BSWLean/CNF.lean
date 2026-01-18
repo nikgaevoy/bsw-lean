@@ -205,3 +205,16 @@ lemma Clause.eval_eq_false_iff_all_falsified_literals {vars} (c : Clause vars)
 def Clause.resolve {vars} (c₁ : Clause vars) (c₂ : Clause vars) (x : Variable) (h_x : x ∈ vars)
 : Clause vars :=
   c₁.erase (x.toLiteral h_x) ∪ c₂.erase (x.toNegLiteral h_x)
+
+@[simp]
+lemma Clause.not_in_variables_subset {vars} (c₁ : Clause vars) (c₂ : Clause vars) (x : Variable) :
+    c₁ ⊆ c₂ → x ∉ c₂.variables → x ∉ c₁.variables := by
+  intro h_subset
+  unfold Clause.variables
+  aesop
+
+@[simp]
+lemma Clause.union_variables {vars} (c₁ : Clause vars) (c₂ : Clause vars) :
+    (c₁ ∪ c₂).variables = c₁.variables ∪ c₂.variables := by
+  unfold Clause.variables
+  aesop

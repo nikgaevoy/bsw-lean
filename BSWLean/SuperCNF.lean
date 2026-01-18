@@ -722,6 +722,28 @@ def Clause.combine {vars₁} {vars₂} (c₁ : Clause vars₁) (c₂ : Clause va
 
     c₁' ∪ c₂'
 
+lemma Clause.convert_trivial_keeps_variables {vars₁} (c : Clause vars₁) (vars₂ : Variables)
+    (h_eq : vars₁ = vars₂) : c.variables = (c.convert_trivial vars₂ h_eq).variables := by
+  unfold Clause.variables
+  unfold Clause.convert_trivial
+  aesop
+
+lemma Clause.convert_keeps_variables {vars₁} (c : Clause vars₁) (vars₂ : Variables)
+    {h} : c.variables = (c.convert vars₂ h).variables := by
+  unfold Clause.variables
+  unfold Clause.convert
+  aesop
+
+lemma Clause.combine_not_variables {vars₁} {vars₂} (c₁ : Clause vars₁) (c₂ : Clause vars₂)
+    (h : Disjoint vars₁ vars₂) (x : Variable) :
+    x ∉ c₁.variables → x ∉ c₂.variables → x ∉ (c₁.combine c₂ h).variables := by
+  intro h₁ h₂
+  unfold Clause.combine
+  simp only [union_variables, Finset.mem_union, not_or]
+  rw [←Clause.convert_keeps_variables]
+  rw [←Clause.convert_keeps_variables]
+  trivial
+
 lemma Clause.substitute_combine {vars} {sub_vars} (c : Clause vars) (ρ : Assignment sub_vars)
     (h_subset : sub_vars ⊆ vars) (h : (c.substitute ρ).isSome)
 : c ⊆ (Clause.combine ((c.substitute ρ).get h)

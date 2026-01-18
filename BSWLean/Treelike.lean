@@ -328,7 +328,19 @@ noncomputable def TreeLikeResolution.unsubstitute {vars} {sub_vars} {c} {φ : CN
 
       have h_out : x ∉ c'.variables := by
         unfold c'
-        sorry
+        apply Clause.not_in_variables_subset (unsubstitute_rhs h_subset ρ π)
+          ((Clause.combine c ρ.toClause Finset.sdiff_disjoint).convert_trivial vars (by aesop))
+        · exact unsubstitute_rhs_variables h_subset ρ π
+        · have h_not_in_ρ : x ∉ ρ.toClause.variables := by
+            rw [Assignment.toClause_variables]
+            rw [Finset.mem_sdiff] at h_x_in
+            exact h_x_in.right
+          have : x ∉ (c.combine ρ.toClause Finset.sdiff_disjoint).variables := by
+            apply Clause.combine_not_variables
+            · assumption
+            · assumption
+          rw [←Clause.convert_trivial_keeps_variables]
+          assumption
 
       have : (c₁' ⊆ c' ∪ { x.toLiteral h_in }) ∧
              (c₂' ⊆ c' ∪ { x.toNegLiteral h_in }) := by
