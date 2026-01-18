@@ -625,12 +625,94 @@ lemma Clause.convert_trivial_subset_insert {vars₁ : Variables} (c₁ : Clause 
   unfold convert_trivial
   aesop
 
+lemma Clause.convert_keeps_literals {vars₁ : Variables} (c : Clause vars₁) (l : Literal vars₁)
+    (vars₂ : Variables) {h_l} {h_c} :
+    l ∈ c → l.convert vars₂ h_l ∈ c.convert vars₂ h_c := by
+    unfold convert
+    aesop
+
+lemma Clause.convert_keeps_subset {vars₁ : Variables} (c₁ : Clause vars₁) (c₂ : Clause vars₁)
+    (vars₂ : Variables) {h_c₁} {h_c₂} :
+    c₁ ⊆ c₂ → c₁.convert vars₂ h_c₁ ⊆ c₂.convert vars₂ h_c₂ := by
+    intro h
+    rw [@Finset.subset_iff]
+    intro l h_l
+    unfold convert at h_l
+    simp at h_l
+    obtain ⟨l', ⟨p, h_l'⟩⟩ := h_l
+    rw [←h_l']
+    apply Clause.convert_keeps_literals
+    aesop
+
+lemma Clause.equiv_keeps_subset {vars₁ : Variables} {vars₂ : Variables}
+    (c₁ : Clause vars₁) (c₂ : Clause vars₁)
+    (c₁' : Clause vars₂) (c₂' : Clause vars₂) :
+    ClauseSubset c₁' c₁ → ClauseSubset c₂ c₂' → c₁ ⊆ c₂ → c₁' ⊆ c₂' := by
+    intro h₁ h₂ h_subset
+    rw [@Finset.subset_iff]
+    intro l₁ h_l₁
+    obtain ⟨l, ⟨h_l, _⟩⟩ := h₁.h_subset l₁ h_l₁
+    apply h_subset at h_l
+    obtain ⟨l₂, ⟨h_l₂, _⟩⟩ := h₂.h_subset l h_l
+    have : l₁ = l₂ := by
+      rw [←Literal.equiv_equiv]
+      apply Literal.equiv_trans l₁ l l₂
+      · assumption
+      · assumption
+    rw [this]
+    assumption
+
 lemma Clause.convert_maintains_subset_insert {vars₁ : Variables} (c₁ : Clause vars₁)
     (c₂ : Clause vars₁) (vars₂ : Variables) (l : Literal vars₂) (h : l.variable ∈ vars₁) {h₁} {h₂} :
     c₁ ⊆ insert (l.convert vars₁ h) c₂ →
     c₁.convert vars₂ h₁ ⊆ insert l (c₂.convert vars₂ h₂) := by
   intro h_c
-  sorry
+  have h_c₁ : ClauseEquiv c₁ (c₁.convert vars₂ h₁) := by
+    aesop
+  have h_c₂ : ClauseEquiv (insert (l.convert vars₁ h) c₂) (insert l (c₂.convert vars₂ h₂)) := by
+    constructor
+    · constructor
+      intro l' h_l'
+      rw [Finset.mem_insert] at h_l'
+      cases h_l'
+      case inl =>
+        use l
+        aesop
+      case inr =>
+        use l'.convert vars₂ (by aesop)
+        constructor
+        · refine Finset.mem_insert_of_mem ?_
+          apply Clause.convert_keeps_literals
+          assumption
+        · constructor
+          aesop
+    · constructor
+      intro l' h_l'
+      rw [Finset.mem_insert] at h_l'
+      cases h_l'
+      case inl =>
+        use l.convert vars₁ (by aesop)
+        rename_i h_1
+        subst h_1
+        simp_all only [equiv_sym, Finset.mem_insert, true_or, true_and]
+        constructor
+        aesop
+      case inr =>
+        have : l'.variable ∈ vars₁ := by
+          unfold convert at *
+          aesop
+        use l'.convert vars₁ this
+        constructor
+        · rw [@Finset.mem_insert]
+          right
+          unfold Clause.convert at *
+          aesop
+        · constructor
+          aesop
+  apply Clause.equiv_keeps_subset c₁ (insert (l.convert vars₁ h) c₂)
+  · exact ClauseEquiv.h_mpr
+  · exact ClauseEquiv.h_mp
+  · assumption
 
 def Clause.combine {vars₁} {vars₂} (c₁ : Clause vars₁) (c₂ : Clause vars₂)
     (h : Disjoint vars₁ vars₂) : Clause (vars₁.disjUnion vars₂ h) :=
