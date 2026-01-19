@@ -759,4 +759,126 @@ lemma Clause.substitute_combine {vars} {sub_vars} (c : Clause vars) (ρ : Assign
     (h_subset : sub_vars ⊆ vars) (h : (c.substitute ρ).isSome)
 : c ⊆ (Clause.combine ((c.substitute ρ).get h)
                        ρ.toClause Finset.sdiff_disjoint).convert_trivial vars (by aesop) := by
-  sorry
+  let c_combine := (Clause.combine ((c.substitute ρ).get h) ρ.toClause Finset.sdiff_disjoint)
+  let c_combine_convert := c_combine.convert_trivial vars (by aesop)
+
+  have h_convert_subset : ClauseSubset c_combine c_combine_convert := by
+    constructor
+    unfold c_combine_convert
+    intro l h_l
+    unfold Clause.convert_trivial
+    unfold Clause.convert
+    simp only [Finset.mem_filterMap, Option.dite_none_right_eq_some, Option.some.injEq,
+      and_exists_self, ↓existsAndEq, true_and]
+    use l
+    use h_l
+    constructor
+    aesop
+
+  suffices h_subset : ClauseSubset c c_combine by
+    have := Clause.subset_trans c c_combine c_combine_convert h_subset h_convert_subset
+    let := this.h_subset
+    rw [@Finset.subset_iff]
+    intro l h_l
+    obtain ⟨l', ⟨h_l', h_eq⟩⟩ := this l h_l
+    have : l = l' := by
+      exact (Literal.equiv_equiv l l').mp h_eq
+    rw [this]
+    assumption
+
+  have h_ρ : ClauseSubset ρ.toClause c_combine := by
+    constructor
+    unfold c_combine
+    unfold Clause.combine
+    simp only
+    intro l h_l
+    use l.convert (Finset.disjUnion (vars \ sub_vars) sub_vars (Finset.sdiff_disjoint)) (by aesop)
+    constructor
+    · rw [@Finset.mem_union]
+      right
+      apply convert_keeps_literals
+      assumption
+    · constructor
+      aesop
+
+  have h_sub : ClauseSubset ((c.substitute ρ).get h) c_combine := by
+    constructor
+    unfold c_combine
+    unfold Clause.combine
+    simp only
+    intro l h_l
+    have : l.variable ∈ vars \ sub_vars := by
+      exact Literal.variable_mem_vars l
+    use l.convert (Finset.disjUnion (vars \ sub_vars) sub_vars (Finset.sdiff_disjoint)) (by aesop)
+    constructor
+    · rw [@Finset.mem_union]
+      left
+      apply convert_keeps_literals
+      assumption
+    · constructor
+      aesop
+
+  constructor
+  intro l h_l
+  by_cases h_cases : l.variable ∈ sub_vars
+  case pos =>
+    suffices h_mid : ∃ l_ρ ∈ ρ.toClause, LiteralEquiv l l_ρ by
+      obtain ⟨l_ρ, ⟨h_l_ρ, h_ρ_eq⟩⟩ := h_mid
+      obtain ⟨l', ⟨h_l', h_l'_eq⟩⟩ := h_ρ.h_subset l_ρ h_l_ρ
+      use l'
+      constructor
+      · assumption
+      · apply Literal.equiv_trans l l_ρ l'
+        · assumption
+        · assumption
+    use (ρ.negVariable l.variable).get (by
+      unfold Assignment.negVariable
+      simp [h_cases]
+      aesop
+    )
+    constructor
+    · unfold Assignment.toClause
+      aesop
+    · constructor
+      constructor
+      · unfold Assignment.negVariable
+        aesop
+      · suffices h_eval : ρ l.variable (by aesop) = ¬l.polarity by
+          unfold Assignment.negVariable
+          aesop
+        simp only [Bool.not_eq_true, eq_iff_iff, Bool.coe_true_iff_false]
+        rw [substitute_isSome_iff_eval_subclause_false] at h
+        simp only [Bool.not_eq_true] at h
+        rw [eval_eq_false_iff_all_falsified_literals] at h
+        let l' := l.restrict (vars ∩ sub_vars) (by aesop)
+        have := h l' (by
+          unfold Clause.split
+          unfold Clause.shrink
+          aesop
+        )
+        unfold Literal.eval at this
+        unfold Assignment.restrict at this
+        unfold l' at this
+        unfold Literal.restrict at this
+        aesop
+
+  case neg =>
+    suffices h_mid : ∃ l_sub ∈ ((c.substitute ρ).get h), LiteralEquiv l l_sub by
+      obtain ⟨l_sub, ⟨h_l_sub, h_sub_eq⟩⟩ := h_mid
+      obtain ⟨l', ⟨h_l', h_l'_eq⟩⟩ := h_sub.h_subset l_sub h_l_sub
+      use l'
+      constructor
+      · assumption
+      · apply Literal.equiv_trans l l_sub l'
+        · assumption
+        · assumption
+    unfold Clause.substitute
+    use l.restrict (vars \ sub_vars) (by aesop)
+    constructor
+    · simp only [Option.get_ite']
+      unfold Clause.split
+      unfold Clause.shrink
+      aesop
+    · constructor
+      unfold Literal.restrict
+      aesop

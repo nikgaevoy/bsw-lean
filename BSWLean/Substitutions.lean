@@ -118,6 +118,13 @@ lemma Clause.substitute_eq_none_iff_eval_subclause_true {vars} (c : Clause vars)
   case mpr =>
     simp_all only [↓reduceIte, implies_true]
 
+lemma Clause.substitute_isSome_iff_eval_subclause_false {vars} (c : Clause vars)
+    (sub_vars : Variables) (ρ : Assignment sub_vars)
+: (c.substitute ρ).isSome ↔
+  ¬(c.split sub_vars).1.eval (ρ.restrict (vars ∩ sub_vars) Finset.inter_subset_right) := by
+  rw [← @substitute_eq_none_iff_eval_subclause_true]
+  exact Option.isSome_iff_ne_none
+
 @[simp]
 lemma Assignment.restrict_correctness {vars} {h} (ρ : Assignment vars)
     : ρ.restrict vars h = ρ := by
