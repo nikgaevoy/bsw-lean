@@ -218,3 +218,12 @@ lemma Clause.union_variables {vars} (c₁ : Clause vars) (c₂ : Clause vars) :
     (c₁ ∪ c₂).variables = c₁.variables ∪ c₂.variables := by
   unfold Clause.variables
   aesop
+
+lemma Clause.subset_variables {vars} (c₁ : Clause vars) (c₂ : Clause vars) :
+    c₁ ⊆ c₂ → c₁.variables ⊆ c₂.variables := by
+  intro h
+  unfold Clause.variables
+  rw [@Finset.image_subset_iff]
+  intro l h_l
+  have : l ∈ c₂ := by aesop
+  aesop

@@ -744,6 +744,17 @@ lemma Clause.combine_not_variables {vars₁} {vars₂} (c₁ : Clause vars₁) (
   rw [←Clause.convert_keeps_variables]
   trivial
 
+lemma Clause.combine_variables {vars₁} {vars₂} (c₁ : Clause vars₁) (c₂ : Clause vars₂)
+    (h : Disjoint vars₁ vars₂) : (c₁.combine c₂ h).variables = c₁.variables ∪ c₂.variables := by
+  unfold combine
+  simp only [union_variables]
+  rw [←Clause.convert_keeps_variables]
+  rw [←Clause.convert_keeps_variables]
+
+lemma Clause.convert_empty {vars₁} {vars₂} (c : Clause vars₁) {h} :
+    c = ∅ → c.convert vars₂ h = ∅ := by
+  aesop
+
 lemma Clause.substitute_combine {vars} {sub_vars} (c : Clause vars) (ρ : Assignment sub_vars)
     (h_subset : sub_vars ⊆ vars) (h : (c.substitute ρ).isSome)
 : c ⊆ (Clause.combine ((c.substitute ρ).get h)
