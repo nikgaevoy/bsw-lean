@@ -47,6 +47,12 @@ lemma literal_in_clause_variables {vars} {l : Literal vars} {c : Clause vars} (h
   unfold Clause.variables
   exact Finset.mem_image_of_mem Literal.variable h_l_in_c
 
+@[aesop safe]
+lemma clause_variables_subset_vars {vars} (c : Clause vars) : c.variables ⊆ vars := by
+  unfold Clause.variables
+  unfold Literal.variable
+  grind
+
 abbrev CNFFormula (vars : Variables) := Finset (Clause vars)
 
 def Literal.eval {vars} (l : Literal vars) (a : Assignment vars) : Bool :=

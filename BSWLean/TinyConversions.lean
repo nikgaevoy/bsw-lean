@@ -57,7 +57,7 @@ lemma convert_card_ineq {vars₁ vars₂} {C : Clause vars₁} {h}
 
 @[simp]
 lemma convert_card_ineq_oppsite {vars₁ vars₂} {C : Clause vars₁} {h}
-  : (C.convert vars₂ h).card ≥  C.card := by
+  : (C.convert vars₂ h).card ≥ C.card := by
     have h₂ : ∀ l ∈ (C.convert vars₂ h), l.variable ∈ vars₁ := by
       intro l a
       unfold Clause.convert at a
@@ -68,7 +68,7 @@ lemma convert_card_ineq_oppsite {vars₁ vars₂} {C : Clause vars₁} {h}
       simp_all only [Literal.convert_variable, Literal.variable_mem_vars]
     have idea₁ : ((C.convert vars₂ h).convert vars₁ h₂).card ≤ (C.convert vars₂ h).card := by
       exact convert_card_ineq
-    simp_all only [Literal.variable_mem_vars, implies_true, Clause.convert_convert, Clause.convert_self, ge_iff_le]
+    simp_all
 
 @[simp]
 lemma convert_card {vars₁ vars₂} {C : Clause vars₁} {h} :
@@ -84,9 +84,66 @@ lemma to_clause_card_less_than_sub_vars_card {sub_vars : Variables} (ρ : Assign
   unfold Assignment.toClause
   exact filterMap_card sub_vars
 
+lemma disjoint_contradiction {α} [DecidableEq α] (s₁ s₂ : Finset α) (h_disj : Disjoint s₁ s₂)
+    (h : ∃ x ∈ s₁, x ∈ s₂) : False := by
+  rw [Finset.disjoint_iff_inter_eq_empty] at h_disj
+  obtain ⟨x, h_x_in_s₁, h_x_in_s₂⟩ := h
+  have : x ∈ s₁ ∩ s₂ := by
+    simp only [Finset.mem_inter]
+    constructor
+    · assumption
+    · assumption
+  rw [h_disj] at this
+  contradiction
+
 @[simp]
 lemma subset_combine {vars₁ vars₂} (c₁ c₂ : Clause vars₁) (c' : Clause vars₂)
     (h_disj : Disjoint vars₁ vars₂) :
     (Clause.combine c₁ c' h_disj) ⊆ (Clause.combine c₂ c' h_disj) ↔ c₁ ⊆ c₂ := by
-  sorry
+  unfold Clause.combine
+  simp only
+  constructor
+  case mpr =>
+    intro h_subset
+    refine Finset.union_subset_union_left ?_
+    aesop
+  case mp =>
+    intro h_subset
+    have : c₁.convert (Finset.disjUnion vars₁ vars₂ h_disj) (by aesop) ⊆
+           c₂.convert (Finset.disjUnion vars₁ vars₂ h_disj) (by aesop) := by
+      rw [Finset.union_subset_iff] at h_subset
+      replace h_subset := h_subset.1
+      intro l h_l_in_c₁
+      have h_apply_subset : l ∈ c₂.convert (Finset.disjUnion vars₁ vars₂ h_disj) (by aesop) ∪
+                                c'.convert (Finset.disjUnion vars₁ vars₂ h_disj) (by aesop) := by
+        apply h_subset
+        assumption
+      simp only [Finset.mem_union] at h_apply_subset
+      by_contra!
+      simp_all only [false_or]
+      have h_l_in_vars₁ : l.variable ∈ vars₁ := by
+        have : l.variable ∈
+            (c₁.convert (Finset.disjUnion vars₁ vars₂ h_disj) (by aesop)).variables := by
+          exact literal_in_clause_variables h_l_in_c₁
+        rw [Clause.convert_keeps_variables] at this
+        have h₁ : c₁.variables ⊆ vars₁ := by aesop
+        aesop
+      have h_l_in_vars₂ : l.variable ∈ vars₂ := by
+        have : l.variable ∈
+            (c'.convert (Finset.disjUnion vars₁ vars₂ h_disj) (by aesop)).variables := by
+          exact literal_in_clause_variables (by assumption)
+        rw [Clause.convert_keeps_variables] at this
+        have h₁ : c'.variables ⊆ vars₂ := by aesop
+        aesop
+      have : l.variable ∈ vars₁ ∩ vars₂ := by aesop
+      unfold Disjoint at h_disj
+      apply disjoint_contradiction vars₁ vars₂ h_disj
+      use l.variable
 
+    intro l h_l_in_c₁
+    have h_l_in_c_convert : l.convert (Finset.disjUnion vars₁ vars₂ h_disj) (by aesop) ∈
+        c₂.convert (Finset.disjUnion vars₁ vars₂ h_disj) (by aesop) := by
+      apply this
+      aesop
+
+    sorry
