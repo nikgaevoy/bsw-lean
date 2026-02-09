@@ -79,7 +79,7 @@ lemma Literal.equiv_equiv {vars} (c₁ c₂ : Literal vars) : LiteralEquiv c₁ 
 
     aesop
 
-@[simp]
+@[aesop safe]
 lemma Literal.equiv_trans {vars₁} {vars₂} {vars₃}
     {l₁ : Literal vars₁} (l₂ : Literal vars₂) {l₃ : Literal vars₃}
     (h_12 : LiteralEquiv l₁ l₂) (h_23 : LiteralEquiv l₂ l₃) : LiteralEquiv l₁ l₃ := by
@@ -112,7 +112,7 @@ lemma SuperLiteral.equiv_Equivalence : Equivalence SuperLiteralEquiv := by
     aesop
 
 
-@[simp]
+@[aesop safe]
 lemma Literal.convert_equiv {vars₁ vars₂ : Variables} (l : Literal vars₁) {h : l.variable ∈ vars₂} :
     LiteralEquiv (l.convert vars₂ h) l := by
   constructor
@@ -124,10 +124,28 @@ lemma Literal.convert_self {vars : Variables} (l : Literal vars) {h} : l.convert
   aesop
 
 @[simp]
-lemma Literal.convert_convert {vars₁ vars₂ vars₃ : Variables} (l : Literal vars₁) {h₁ h₂ h₃} :
-    (l.convert vars₂ h₁).convert vars₃ h₂ = l.convert vars₃ h₃ := by
+lemma Literal.convert_convert {vars₁ vars₂ vars₃ : Variables} (l : Literal vars₁) {h₁ h₂} :
+    (l.convert vars₂ h₁).convert vars₃ h₂ = l.convert vars₃
+    (by
+      unfold Literal.convert at h₂;
+      split at h₂
+      next l h_mem v h_v_mem_vars h_mem_1 => exact h₂
+      next l h_mem v h_v_mem_vars h_mem_1 => exact h₂) := by
   unfold convert
-  aesop
+  -- plain aesop dies here for some reason, so we have to do some manual work
+  split
+  next l_1 h_mem v h_v_mem_vars h_mem_1 heq
+    heq_1 =>
+    simp_all only [convert_variable]
+    split
+    next l h_mem_2 v_1 h_v_mem_vars_1 h_mem_3 => simp_all only [pos.injEq]
+    next l h_mem_2 v_1 h_v_mem_vars_1 h_mem_3 => simp_all only [reduceCtorEq]
+  next l_1 h_mem v h_v_mem_vars h_mem_1 heq
+    heq_1 =>
+    simp_all only [convert_variable]
+    split
+    next l h_mem_2 v_1 h_v_mem_vars_1 h_mem_3 => simp_all only [reduceCtorEq]
+    next l h_mem_2 v_1 h_v_mem_vars_1 h_mem_3 => simp_all only [neg.injEq]
 
 @[simp]
 lemma Literal.convert_eval {vars sub_vars : Variables}
@@ -435,12 +453,34 @@ lemma Clause.ClauseEquiv_iff_eq {vars} (c₁ c₂ : Clause vars) :
     ClauseEquiv c₁ c₂ ↔ c₁ = c₂ := by
   aesop
 
+@[aesop safe]
+lemma Clause.convert_keeps_literals {vars₁ : Variables} {c : Clause vars₁} {l : Literal vars₁}
+    (vars₂ : Variables) {h_l} {h_c} (_ : l ∈ c) : l.convert vars₂ h_l ∈ c.convert vars₂ h_c := by
+    unfold convert
+    aesop
+
+lemma convert_h₃ {vars₁ vars₂ vars₃ : Variables} (c : Clause vars₁)
+    (h₁ : ∀ l ∈ c, l.variable ∈ vars₂) (h₂ : ∀ l ∈ (c.convert vars₂ h₁), l.variable ∈ vars₃) :
+    ∀ l ∈ c, l.variable ∈ vars₃ := by
+  intro l h_l_c
+  have h_exists : ∃ l' ∈ (c.convert vars₂ h₁), LiteralEquiv l l' := by
+    use l.convert vars₂ (h₁ l h_l_c)
+    apply And.intro
+    · apply Clause.convert_keeps_literals
+      simp_all only
+    · constructor
+      aesop
+  obtain ⟨l', ⟨h_l'_c, h_eq⟩⟩ := h_exists
+  have := h_eq.h_equiv.left
+  aesop
+
 @[simp]
-lemma Clause.convert_convert {vars₁ vars₂ vars₃ : Variables} (c : Clause vars₁) {h₁ h₂ h₃} :
-    (c.convert vars₂ h₁).convert vars₃ h₂ = c.convert vars₃ h₃ := by
+lemma Clause.convert_convert {vars₁ vars₂ vars₃ : Variables} (c : Clause vars₁) {h₁ h₂} :
+    (c.convert vars₂ h₁).convert vars₃ h₂ =
+    c.convert vars₃ (by exact fun l a ↦ convert_h₃ c h₁ h₂ l a) := by
   let c₁ := c.convert vars₂ h₁
   let c₂ := c₁.convert vars₃ h₂
-  let c₃ := c.convert vars₃ h₃
+  let c₃ := c.convert vars₃ (by exact fun l a ↦ convert_h₃ c h₁ h₂ l a)
 
   rw [←Clause.ClauseEquiv_iff_eq]
   have : ClauseEquiv c₃ c := by
@@ -597,11 +637,7 @@ lemma Clause.convert_trivial_subset_insert {vars₁ vars₂ : Variables} {c₁ c
   unfold convert_trivial
   aesop
 
-lemma Clause.convert_keeps_literals {vars₁ : Variables} {c : Clause vars₁} {l : Literal vars₁}
-    (vars₂ : Variables) {h_l} {h_c} (_ : l ∈ c) : l.convert vars₂ h_l ∈ c.convert vars₂ h_c := by
-    unfold convert
-    aesop
-
+@[aesop safe]
 lemma Clause.convert_keeps_subset {vars₁ : Variables} {c₁ c₂ : Clause vars₁} (vars₂ : Variables)
     {h_c₁ h_c₂} (h : c₁ ⊆ c₂) : c₁.convert vars₂ h_c₁ ⊆ c₂.convert vars₂ h_c₂ := by
     rw [@Finset.subset_iff]

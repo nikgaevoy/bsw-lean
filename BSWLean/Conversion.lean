@@ -16,7 +16,7 @@ lemma Assignment.negVariable_variable {vars} {ρ : Assignment vars} {v : Variabl
   aesop
 
 
-@[simp]
+@[aesop unsafe]
 lemma Assignment.negVariable_inj {vars} {ρ : Assignment vars} {x₁ x₂ : Variable} {y : Literal vars}
     (h_y_in_mp_x1 : y ∈ ρ.negVariable x₁) (h_y_in_mp_x2 : y ∈ ρ.negVariable x₂) : x₁ = x₂ := by
   unfold Assignment.negVariable at h_y_in_mp_x1 h_y_in_mp_x2

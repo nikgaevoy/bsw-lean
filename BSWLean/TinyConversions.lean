@@ -71,11 +71,11 @@ lemma convert_card_ineq_oppsite {vars₁ vars₂} {C : Clause vars₁} {h}
     simp_all only [Literal.variable_mem_vars, implies_true, Clause.convert_convert, Clause.convert_self, ge_iff_le]
 
 @[simp]
-lemma convert_card {vars₁ vars₂} {C : Clause vars₁} {h}
-  : (C.convert vars₂ h).card =  C.card := by
+lemma convert_card {vars₁ vars₂} {C : Clause vars₁} {h} :
+    (C.convert vars₂ h).card = C.card := by
   refine Nat.le_antisymm ?_ ?_
-  exact convert_card_ineq
-  exact convert_card_ineq_oppsite
+  · exact convert_card_ineq
+  · exact convert_card_ineq_oppsite
 
 
 
@@ -83,3 +83,10 @@ lemma to_clause_card_less_than_sub_vars_card {sub_vars : Variables} (ρ : Assign
   (Finset.card ρ.toClause ≤ Finset.card sub_vars) := by
   unfold Assignment.toClause
   exact filterMap_card sub_vars
+
+@[simp]
+lemma subset_combine {vars₁ vars₂} (c₁ c₂ : Clause vars₁) (c' : Clause vars₂)
+    (h_disj : Disjoint vars₁ vars₂) :
+    (Clause.combine c₁ c' h_disj) ⊆ (Clause.combine c₂ c' h_disj) ↔ c₁ ⊆ c₂ := by
+  sorry
+

@@ -58,6 +58,43 @@ lemma clause_combine_superset (vars₁ vars₂) {x : Variable} (c₁ c₂: Claus
     simp
     simp
 
+@[aesop safe]
+lemma loose_convert {vars₁ vars₂} (c₁ c₂ : Clause vars₁) {h₁ h₂} (h_subset : c₁ ⊆ c₂) :
+    (c₁.convert vars₂ h₁) ⊆ (c₂.convert vars₂ h₂) := by
+  exact Clause.convert_keeps_subset vars₂ h_subset
+
+@[simp]
+lemma loose_convert_eq {vars₁ vars₂} (c₁ c₂ : Clause vars₁) {h₁ h₂} (h_subset : c₁ = c₂) :
+    (c₁.convert vars₂ h₁) = (c₂.convert vars₂ h₂) := by
+  aesop
+
+@[aesop safe]
+lemma loose_convert_trivial {vars₁ vars₂} (c₁ c₂ : Clause vars₁) {h₁ h₂} (h_subset : c₁ ⊆ c₂) :
+    (c₁.convert_trivial vars₂ h₁) ⊆ (c₂.convert_trivial vars₂ h₂) := by
+  unfold Clause.convert_trivial
+  aesop
+
+@[simp]
+lemma carry_through_convert {vars₁ vars₂} (c₁ c₂ : Clause vars₁) {h₁} :
+    ((c₁ ∪ c₂).convert vars₂ h₁) =
+    (c₁.convert vars₂ (by aesop)) ∪ (c₂.convert vars₂ (by aesop)) := by
+  unfold Clause.convert
+  aesop
+
+@[simp]
+lemma carry_through_convert_trivial {vars₁ vars₂} (c₁ c₂ : Clause vars₁) {h₁ h₂} :
+    ((c₁ ∪ c₂).convert_trivial vars₂ h₁) =
+    (c₁.convert_trivial vars₂ h₂) ∪ (c₂.convert_trivial vars₂ h₂) := by
+  unfold Clause.convert_trivial
+  aesop
+
+lemma cup_subset_cup {α} [DecidableEq α] (a b c d : Finset α) (h : a ⊆ c) (h' : b ⊆ d) :
+    (a ∪ b) ⊆ (c ∪ d) := by
+  grind
+
+lemma remove_middle_subset {α} [DecidableEq α] (a b c d : Finset α) (h : a ⊆ b ∪ d) :
+    a ⊆ b ∪ c ∪ d := by grind
+
 
 lemma unsub_increase_width {vars sub_vars} {φ : CNFFormula vars}
     {ρ : Assignment sub_vars} (c : Clause (vars \ sub_vars))
@@ -151,9 +188,26 @@ lemma unsub_increase_width {vars sub_vars} {φ : CNFFormula vars}
         aesop
       have idea₃ : ((Clause.combine c_2 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars (by aesop)) ⊆
         ((Clause.combine c_1 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars (by aesop)) ∪ {var.toLiteral (by grind)} := by
-        trans ((Clause.combine c_1 ρ.toClause Finset.sdiff_disjoint ∪ {var.toLiteral (by grind)}).convert_trivial vars (by aesop))
-        sorry
-        sorry
+        have : Clause.convert {var.toLiteral h_4} vars
+            (by intro l h_l; have q := Literal.variable_mem_vars l; aesop) =
+            {var.toLiteral (by grind)} := by
+          unfold Clause.convert
+          simp only [Finset.mem_singleton]
+          aesop
+        rw [←this]
+        unfold Clause.combine
+        unfold Clause.convert_trivial
+        simp only [Finset.disjUnion_eq_union, Finset.sdiff_union_self_eq_union, Finset.mem_union,
+          Literal.variable_mem_vars, or_true, implies_true, carry_through_convert,
+          Clause.convert_convert, Finset.union_assoc]
+        apply Finset.union_subset
+        swap
+        · grind
+        rw [←Finset.union_assoc]
+        apply remove_middle_subset
+        unfold Clause.convert
+        grind
+
       have idea₄ : ((Clause.combine c_3 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars (by aesop)) ⊆
         ((Clause.combine c_1 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars (by aesop)) ∪ {var.toNegLiteral (by grind)} := by
         sorry

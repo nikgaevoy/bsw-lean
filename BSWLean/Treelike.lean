@@ -559,19 +559,7 @@ theorem unsat_implies_tree_like_refutation {vars} {φ : CNFFormula vars}
       simp [Clause.convert_empty]
       unfold Clause.convert_trivial
       rw [Clause.convert_convert]
-      · refine Finset.subset_of_eq ρ_true_clause
-      intro l h_l
-      have : l.variable = v := by
-        unfold ρ_true at h_l
-        unfold Assignment.toClause Assignment.negVariable at h_l
-        unfold Variable.toNegLiteral at h_l
-        simp only [Finset.mem_singleton, decide_true, ↓reduceIte, Finset.mem_filterMap,
-          Option.dite_none_right_eq_some, Option.some.injEq, and_exists_self,
-          exists_prop_eq] at h_l
-        rw [←h_l]
-        rfl
-      rw [this]
-      exact Finset.mem_insert_self v vars'
+      refine Finset.subset_of_eq ρ_true_clause
 
     have h_c_false : c_false ⊆ v_pos := by
       unfold c_false
@@ -587,19 +575,7 @@ theorem unsat_implies_tree_like_refutation {vars} {φ : CNFFormula vars}
       simp [Clause.convert_empty]
       unfold Clause.convert_trivial
       rw [Clause.convert_convert]
-      · refine Finset.subset_of_eq ρ_false_clause
-      intro l h_l
-      have : l.variable = v := by
-        unfold ρ_false at h_l
-        unfold Assignment.toClause Assignment.negVariable at h_l
-        unfold Variable.toNegLiteral Variable.toLiteral at h_l
-        simp only [Finset.mem_singleton, decide_false, Bool.false_eq_true, ↓reduceIte,
-          Finset.mem_filterMap, Option.dite_none_right_eq_some, Option.some.injEq,
-          and_exists_self, exists_prop_eq] at h_l
-        rw [←h_l]
-        rfl
-      rw [this]
-      exact Finset.mem_insert_self v vars'
+      refine Finset.subset_of_eq ρ_false_clause
 
     by_cases c_true = ∅
     case pos h_true_empty =>
