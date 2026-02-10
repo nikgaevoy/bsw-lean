@@ -4,22 +4,24 @@ import BSWLean.Treelike
 lemma trivial_convert_card {vars₁ vars₂} {C : Clause vars₁} {h}
   : (C.convert_trivial vars₂ h).card = C.card := by
   refine Set.BijOn.finsetCard_eq ?_ ?_
-  intro lit₁
-  subst h
-  exact lit₁
+  · intro lit₁
+    subst h
+    exact lit₁
   subst h
   simp_all only
   constructor
-  unfold Clause.convert_trivial
-  unfold Clause.convert
-  simp
-  exact fun ⦃x⦄ a ↦ a
+  · unfold Clause.convert_trivial
+    unfold Clause.convert
+    simp only [Literal.convert_self, dite_eq_ite, Finset.coe_filterMap,
+      Option.ite_none_right_eq_some, Option.some.injEq, and_self_left, exists_eq_right,
+      SetLike.setOf_mem_eq]
+    exact fun ⦃x⦄ a ↦ a
   unfold Clause.convert_trivial
   unfold Clause.convert
   simp
   refine Finset.surjOn_of_injOn_of_card_le (fun lit₁ ↦ lit₁) (fun ⦃x⦄ a ↦ a) ?_ ?_
-  exact Function.Injective.injOn fun ⦃a₁ a₂⦄ a ↦ a
-  exact (Finset.eq_iff_card_ge_of_superset fun ⦃a⦄ a_1 ↦ a_1).mpr rfl
+  · exact Function.Injective.injOn fun ⦃a₁ a₂⦄ a ↦ a
+  · exact (Finset.eq_iff_card_ge_of_superset fun ⦃a⦄ a_1 ↦ a_1).mpr rfl
 
 @[simp]
 lemma filterMap_card {α β} [DecidableEq α] [DecidableEq β] (s : Finset α) {f : α → Option β} {h} :
@@ -49,13 +51,11 @@ lemma filterMap_card {α β} [DecidableEq α] [DecidableEq β] (s : Finset α) {
     · grind
 
 
-@[simp]
 lemma convert_card_ineq {vars₁ vars₂} {C : Clause vars₁} {h}
   : (C.convert vars₂ h).card ≤  C.card := by
   unfold Clause.convert
   exact filterMap_card C
 
-@[simp]
 lemma convert_card_ineq_oppsite {vars₁ vars₂} {C : Clause vars₁} {h}
   : (C.convert vars₂ h).card ≥ C.card := by
     have h₂ : ∀ l ∈ (C.convert vars₂ h), l.variable ∈ vars₁ := by
