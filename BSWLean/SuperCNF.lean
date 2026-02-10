@@ -49,6 +49,13 @@ lemma Literal.convert_polarity {vars₁ vars₂ : Variables} (l : Literal vars�
   aesop
 
 @[simp]
+lemma Literal.convert_keeps_equality {vars₁ vars₂ : Variables} (l₁ l₂ : Literal vars₁) {h₁ h₂} :
+    l₁.convert vars₂ h₁ = l₂.convert vars₂ h₂ ↔ l₁ = l₂ := by
+  unfold Literal.convert
+  aesop
+
+
+@[simp]
 lemma SuperLiteral.toLiteral_eq_none_iff_wrong_vars {vars} (sl : SuperLiteral) :
     sl.toLiteral vars = none ↔ vars != sl.vars := by
   unfold SuperLiteral.toLiteral
@@ -453,11 +460,15 @@ lemma Clause.ClauseEquiv_iff_eq {vars} (c₁ c₂ : Clause vars) :
     ClauseEquiv c₁ c₂ ↔ c₁ = c₂ := by
   aesop
 
-@[aesop safe]
+@[simp]
 lemma Clause.convert_keeps_literals {vars₁ : Variables} {c : Clause vars₁} {l : Literal vars₁}
-    (vars₂ : Variables) {h_l} {h_c} (_ : l ∈ c) : l.convert vars₂ h_l ∈ c.convert vars₂ h_c := by
-    unfold convert
-    aesop
+    (vars₂ : Variables) {h_l} {h_c} : l.convert vars₂ h_l ∈ c.convert vars₂ h_c ↔ l ∈ c := by
+    constructor
+    · intro h_convert
+      unfold Clause.convert at h_convert
+      simp_all
+    · unfold Clause.convert
+      aesop
 
 lemma convert_h₃ {vars₁ vars₂ vars₃ : Variables} (c : Clause vars₁)
     (h₁ : ∀ l ∈ c, l.variable ∈ vars₂) (h₂ : ∀ l ∈ (c.convert vars₂ h₁), l.variable ∈ vars₃) :
@@ -466,8 +477,7 @@ lemma convert_h₃ {vars₁ vars₂ vars₃ : Variables} (c : Clause vars₁)
   have h_exists : ∃ l' ∈ (c.convert vars₂ h₁), LiteralEquiv l l' := by
     use l.convert vars₂ (h₁ l h_l_c)
     apply And.intro
-    · apply Clause.convert_keeps_literals
-      simp_all only
+    · simp_all
     · constructor
       aesop
   obtain ⟨l', ⟨h_l'_c, h_eq⟩⟩ := h_exists
@@ -646,7 +656,6 @@ lemma Clause.convert_keeps_subset {vars₁ : Variables} {c₁ c₂ : Clause vars
     simp at h_l
     obtain ⟨l', ⟨p, h_l'⟩⟩ := h_l
     rw [←h_l']
-    apply Clause.convert_keeps_literals
     aesop
 
 lemma Clause.equiv_keeps_subset {vars₁ vars₂ : Variables}
@@ -686,8 +695,7 @@ lemma Clause.convert_maintains_subset_insert {vars₁ : Variables} (c₁ : Claus
         use l'.convert vars₂ (by aesop)
         constructor
         · refine Finset.mem_insert_of_mem ?_
-          apply Clause.convert_keeps_literals
-          assumption
+          simp_all
         · constructor
           aesop
     · constructor
@@ -793,8 +801,7 @@ lemma Clause.substitute_combine {vars} {sub_vars} (c : Clause vars) (ρ : Assign
     constructor
     · rw [@Finset.mem_union]
       right
-      apply convert_keeps_literals
-      assumption
+      simp_all
     · constructor
       aesop
 
@@ -809,8 +816,7 @@ lemma Clause.substitute_combine {vars} {sub_vars} (c : Clause vars) (ρ : Assign
     constructor
     · rw [@Finset.mem_union]
       left
-      apply convert_keeps_literals
-      assumption
+      simp_all
     · constructor
       aesop
 

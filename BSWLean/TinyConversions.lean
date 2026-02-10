@@ -146,4 +146,4 @@ lemma subset_combine {vars₁ vars₂} (c₁ c₂ : Clause vars₁) (c' : Clause
       apply this
       aesop
 
-    sorry
+    simp_all
