@@ -132,27 +132,10 @@ lemma Literal.convert_self {vars : Variables} (l : Literal vars) {h} : l.convert
 
 @[simp]
 lemma Literal.convert_convert {vars₁ vars₂ vars₃ : Variables} (l : Literal vars₁) {h₁ h₂} :
-    (l.convert vars₂ h₁).convert vars₃ h₂ = l.convert vars₃
-    (by
-      unfold Literal.convert at h₂;
-      split at h₂
-      next l h_mem v h_v_mem_vars h_mem_1 => exact h₂
-      next l h_mem v h_v_mem_vars h_mem_1 => exact h₂) := by
+    (l.convert vars₂ h₁).convert vars₃ h₂ = l.convert vars₃ (by simp_all) := by
   unfold convert
-  -- plain aesop dies here for some reason, so we have to do some manual work
-  split
-  next l_1 h_mem v h_v_mem_vars h_mem_1 heq
-    heq_1 =>
-    simp_all only [convert_variable]
-    split
-    next l h_mem_2 v_1 h_v_mem_vars_1 h_mem_3 => simp_all only [pos.injEq]
-    next l h_mem_2 v_1 h_v_mem_vars_1 h_mem_3 => simp_all only [reduceCtorEq]
-  next l_1 h_mem v h_v_mem_vars h_mem_1 heq
-    heq_1 =>
-    simp_all only [convert_variable]
-    split
-    next l h_mem_2 v_1 h_v_mem_vars_1 h_mem_3 => simp_all only [reduceCtorEq]
-    next l h_mem_2 v_1 h_v_mem_vars_1 h_mem_3 => simp_all only [neg.injEq]
+  -- to avoid the loop
+  aesop (erase simp eqRec_heq_iff_heq)
 
 @[simp]
 lemma Literal.convert_eval {vars sub_vars : Variables}
