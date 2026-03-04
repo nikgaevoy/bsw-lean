@@ -198,7 +198,7 @@ def TreeLikeResolution.size {vars} {φ : CNFFormula vars} :
   | _, .resolve _ _ _ _ _ π₁ π₂ _ => 1 + size π₁ + size π₂
 
 noncomputable def TreeLikeResolution.unsubstitute_rhs {vars sub_vars} {c} {φ : CNFFormula vars}
-    {ρ : Assignment sub_vars} (π : TreeLikeResolution (φ.substitute ρ) c)
+    (ρ : Assignment sub_vars) (π : TreeLikeResolution (φ.substitute ρ) c)
     (h_subset : sub_vars ⊆ vars) : Clause vars :=
   match π with
   | .axiom_clause h_c_in_φ =>
@@ -206,8 +206,8 @@ noncomputable def TreeLikeResolution.unsubstitute_rhs {vars sub_vars} {c} {φ : 
     have : ∃ c' ∈ φ, good c' := by exact CNFFormula.substitute_preimage h_c_in_φ
     Classical.choose this
   | .resolve c₁ c₂ x h_x_in h_x_out π₁ π₂ h =>
-    let c₁' := π₁.unsubstitute_rhs h_subset
-    let c₂' := π₂.unsubstitute_rhs h_subset
+    let c₁' := π₁.unsubstitute_rhs ρ h_subset
+    let c₂' := π₂.unsubstitute_rhs ρ h_subset
 
     have h_x_in_vars : x ∈ vars := by
       apply Finset.sdiff_subset
@@ -221,12 +221,12 @@ lemma finset_right_cup {vars} (x : Clause vars) (y : Clause vars) (z : Clause va
     exact Finset.union_subset_union h fun ⦃a⦄ a_1 ↦ a_1
 
 lemma TreeLikeResolution.unsubstitute_rhs_variables {vars sub_vars} {c} {φ : CNFFormula vars}
-    {ρ : Assignment sub_vars} (π : TreeLikeResolution (φ.substitute ρ) c)
+    (ρ : Assignment sub_vars) (π : TreeLikeResolution (φ.substitute ρ) c)
     (h_subset : sub_vars ⊆ vars) :
-    (π.unsubstitute_rhs h_subset) ⊆
+    (π.unsubstitute_rhs ρ h_subset) ⊆
       (Clause.combine c ρ.toClause Finset.sdiff_disjoint).convert_trivial vars (by aesop)
       := by
-  let c' := π.unsubstitute_rhs h_subset
+  let c' := π.unsubstitute_rhs ρ h_subset
   let rhs := (Clause.combine c ρ.toClause Finset.sdiff_disjoint).convert_trivial vars (by aesop)
   induction π
   case axiom_clause c h_c_in_φ =>
@@ -287,9 +287,9 @@ lemma TreeLikeResolution.unsubstitute_rhs_variables {vars sub_vars} {c} {φ : CN
 
 
 noncomputable def TreeLikeResolution.unsubstitute {vars} {sub_vars} {c} {φ : CNFFormula vars}
-    {ρ : Assignment sub_vars} (π : TreeLikeResolution (φ.substitute ρ) c)
-    (h_subset : sub_vars ⊆ vars) : TreeLikeResolution φ (π.unsubstitute_rhs h_subset) :=
-    let c' := π.unsubstitute_rhs h_subset
+    (ρ : Assignment sub_vars) (π : TreeLikeResolution (φ.substitute ρ) c)
+    (h_subset : sub_vars ⊆ vars) : TreeLikeResolution φ (π.unsubstitute_rhs ρ h_subset) :=
+    let c' := π.unsubstitute_rhs ρ h_subset
 
     match h_match : π with
     | .axiom_clause h_c_in_φ =>
@@ -303,11 +303,11 @@ noncomputable def TreeLikeResolution.unsubstitute {vars} {sub_vars} {c} {φ : CN
 
       TreeLikeResolution.axiom_clause (by aesop)
     | .resolve c₁ c₂ x h_x_in h_x_out π₁ π₂ h =>
-      let π₁' := π₁.unsubstitute h_subset
-      let π₂' := π₂.unsubstitute h_subset
+      let π₁' := π₁.unsubstitute ρ h_subset
+      let π₂' := π₂.unsubstitute ρ h_subset
 
-      let c₁' := π₁.unsubstitute_rhs h_subset
-      let c₂' := π₂.unsubstitute_rhs h_subset
+      let c₁' := π₁.unsubstitute_rhs ρ h_subset
+      let c₂' := π₂.unsubstitute_rhs ρ h_subset
 
       have h_in : x ∈ vars := by
         have : vars \ sub_vars ⊆ vars := by aesop
@@ -315,7 +315,7 @@ noncomputable def TreeLikeResolution.unsubstitute {vars} {sub_vars} {c} {φ : CN
 
       have h_out : x ∉ c'.variables := by
         unfold c'
-        apply Clause.not_in_variables_subset (π.unsubstitute_rhs_variables h_subset)
+        apply Clause.not_in_variables_subset (π.unsubstitute_rhs_variables ρ h_subset)
         have h_not_in_ρ : x ∉ ρ.toClause.variables := by
           rw [Assignment.toClause_variables]
           rw [Finset.mem_sdiff] at h_x_in
@@ -340,9 +340,9 @@ noncomputable def TreeLikeResolution.unsubstitute {vars} {sub_vars} {c} {φ : CN
 
 
 lemma TreeLikeResolution.unsubstitute_size {vars sub_vars} {φ : CNFFormula vars}
-    {ρ : Assignment sub_vars} {c : Clause (vars \ sub_vars)}
+    (ρ : Assignment sub_vars) {c : Clause (vars \ sub_vars)}
     (π : TreeLikeResolution (φ.substitute ρ) c) (h_subset : sub_vars ⊆ vars) :
-    (π.unsubstitute h_subset).size ≤ π.size := by
+    (π.unsubstitute ρ h_subset).size ≤ π.size := by
   induction π
   case axiom_clause =>
     aesop
@@ -419,8 +419,8 @@ theorem unsat_implies_tree_like_refutation {vars} {φ : CNFFormula vars}
     obtain ⟨π_true, h_size_π_true⟩ := ih h_unsat_true
     obtain ⟨π_false, h_size_π_false⟩ := ih h_unsat_false
 
-    let π_true_lifted := π_true.unsubstitute (by aesop)
-    let π_false_lifted := π_false.unsubstitute (by aesop)
+    let π_true_lifted := π_true.unsubstitute ρ_true (by aesop)
+    let π_false_lifted := π_false.unsubstitute ρ_false (by aesop)
 
     let also_vars := insert v vars'
 
@@ -450,8 +450,8 @@ theorem unsat_implies_tree_like_refutation {vars} {φ : CNFFormula vars}
         rw [this]
         rw [Nat.pow_add']
 
-    let c_true := π_true.unsubstitute_rhs (by aesop)
-    let c_false := π_false.unsubstitute_rhs (by aesop)
+    let c_true := π_true.unsubstitute_rhs ρ_true (by aesop)
+    let c_false := π_false.unsubstitute_rhs ρ_false (by aesop)
 
     have h_vars' : vars' = insert v vars' \ {v} := by aesop
     have h_convert : (Finset.disjUnion (insert v vars' \ {v}) {v} (Finset.sdiff_disjoint)) =
@@ -547,7 +547,7 @@ theorem unsat_implies_tree_like_refutation {vars} {φ : CNFFormula vars}
 
     have h_c_true : c_true ⊆ v_neg := by
       unfold c_true
-      let h := π_true.unsubstitute_rhs_variables
+      let h := π_true.unsubstitute_rhs_variables ρ_true
           (by exact Finset.union_subset_left fun ⦃a⦄ a_1 ↦ a_1)
       let mid := ((BotClause (insert v vars' \ {v})).combine ρ_true.toClause
         Finset.sdiff_disjoint).convert_trivial also_vars h_convert
@@ -563,7 +563,7 @@ theorem unsat_implies_tree_like_refutation {vars} {φ : CNFFormula vars}
 
     have h_c_false : c_false ⊆ v_pos := by
       unfold c_false
-      let h := π_false.unsubstitute_rhs_variables
+      let h := π_false.unsubstitute_rhs_variables ρ_false
         (by exact Finset.union_subset_left fun ⦃a⦄ a_1 ↦ a_1)
       let mid := ((BotClause (insert v vars' \ {v})).combine ρ_false.toClause
         Finset.sdiff_disjoint).convert_trivial also_vars h_convert

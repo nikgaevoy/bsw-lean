@@ -12,6 +12,9 @@ inductive Literal (vars : Variables)
 deriving instance DecidableEq
 for Literal
 
+deriving instance DecidableEq
+for Variable
+
 def Variable.toLiteral {vars} (v : Variable) (h_v_mem_vars : v ∈ vars) : Literal vars :=
   Literal.pos v h_v_mem_vars
 
