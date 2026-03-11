@@ -1016,7 +1016,7 @@ lemma width_combine (vars) {φ : CNFFormula vars}
 
       have idea₂ : C_2 ⊆ C_0 ∪ ({x} : Clause vars) := by
         exact
-          substitute_trivial_property φ x h₀ C_0 h_subs ρ_false h_value_false h_c C_1
+          substitute_trivial_property φ x C_0 h_subs ρ_false h_value_false h_c C_1
             h_C_1_conv_left (fun l a ↦ fact₁ C_1 l a) h_C_1_conv_right C_2 h_C_2_conv
 
       have this_1 : C_0 ⊆ C_2 := by

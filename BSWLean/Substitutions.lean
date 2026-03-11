@@ -7,6 +7,12 @@ def Literal.restrict {vars} (l : Literal vars) (sub_vars : Variables)
   | .neg v _ => Literal.neg v h_mem
 
 @[simp]
+lemma Literal.restrict_polarity {vars sub_vars} {l : Literal vars} (h_mem) :
+    (l.restrict sub_vars h_mem).polarity = l.polarity := by
+  unfold Literal.restrict
+  aesop
+
+@[simp]
 lemma Literal.restrict_variable {vars sub_vars} {l : Literal vars} (h_mem) :
     (l.restrict sub_vars h_mem).variable = l.variable := by
   unfold Literal.restrict

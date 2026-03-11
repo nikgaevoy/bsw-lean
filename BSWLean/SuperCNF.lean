@@ -866,3 +866,33 @@ lemma Clause.substitute_combine {vars} {sub_vars} (c : Clause vars) (ρ : Assign
     · constructor
       unfold Literal.restrict
       aesop
+
+
+@[simp]
+lemma Clause.convert_maintains_eq {vars₁ vars₂} {c₁ c₂ : Clause vars₁} {h₁} {h₂} :
+    c₁.convert vars₂ h₁ = c₂.convert vars₂ h₂ ↔ c₁ = c₂ := by
+  let c₁' := c₁.convert vars₂ h₁
+  let c₂' := c₂.convert vars₂ h₂
+
+  let c₁'' := c₁'.convert vars₁ (by
+    intro l h_l
+    unfold c₁' at h_l
+    have h_l_var : l.variable ∈ c₁'.variables := by exact literal_in_clause_variables h_l
+    have : c₁'.variables = c₁.variables := by aesop
+    rw [this] at h_l_var
+    have : c₁.variables ⊆ vars₁ := by aesop
+    aesop)
+  let c₂'' := c₂'.convert vars₁ (by
+    intro l h_l
+    unfold c₂' at h_l
+    have h_l_var : l.variable ∈ c₂'.variables := by exact literal_in_clause_variables h_l
+    have : c₂'.variables = c₂.variables := by aesop
+    rw [this] at h_l_var
+    have : c₂.variables ⊆ vars₁ := by aesop
+    aesop)
+
+  have : c₁'' = c₁ := by aesop
+  have : c₂'' = c₂ := by aesop
+
+  constructor
+  all_goals aesop

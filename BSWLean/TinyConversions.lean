@@ -126,9 +126,55 @@ lemma subset_combine {vars₁ vars₂} (c₁ c₂ : Clause vars₁) (c' : Clause
 
     simp_all
 
+lemma substitute_trivial_property_human_form {vars} {c : Clause vars} {l : Literal vars} {h} :
+    c ⊆
+    ((c.substitute (fun _ _ => ¬l.polarity : Assignment {l.variable})).get h).convert
+      vars (by
+        intro t
+        have := Literal.variable_mem_vars t
+        aesop) ∪ {l} := by
+  intro t h_t
+  simp only [Bool.not_eq_true, Bool.decide_eq_false, Finset.union_singleton, Finset.mem_insert]
+  by_cases h_var : t.variable = l.variable
+  case pos =>
+    left
+    rw [Clause.substitute_isSome_iff_eval_subclause_false] at h
+    simp at h
+    rw [Clause.eval_eq_false_iff_all_falsified_literals] at h
+    unfold Clause.split Clause.shrink at h
+    simp only [Finset.mem_singleton, Finset.mem_filter, Finset.mem_filterMap,
+      Option.dite_none_right_eq_some, Option.some.injEq, and_exists_self, forall_exists_index,
+      forall_and_index] at h
+
+    let t' := t.restrict (vars ∩ {l.variable}) (by aesop)
+    have := h t' t h_t (by aesop) rfl
+    rw [Literal.eq_iff_polarity_and_variable_eq]
+    simp [h_var]
+    have h_t' : t'.polarity = t.polarity := by aesop
+
+    by_cases l.polarity
+    all_goals by_cases t.polarity
+    all_goals unfold Literal.eval Literal.polarity Assignment.restrict at *; grind
+  case neg =>
+    right
+    unfold Clause.substitute Clause.split Clause.shrink Clause.convert
+    simp only [Finset.mem_singleton, Finset.mem_filter, Option.get_ite', Finset.mem_filterMap,
+      Option.dite_none_right_eq_some, Option.some.injEq, and_exists_self, Lean.Elab.WF.paramLet]
+
+    let t' := t.restrict (vars \ {l.variable}) (by aesop)
+    use t'
+
+    use by
+      use t
+      use by aesop
+
+    simp [t']
+    unfold Literal.convert Literal.restrict
+    aesop
+
 lemma substitute_trivial_property {vars}
     (φ : CNFFormula vars)
-    (x : Literal vars) (h₀ : x.variable ∈ vars)
+    (x : Literal vars)
     (C_0 : Clause vars)
     (h_subs : (vars \ {x.variable}) ⊆ vars)
     (ρ_false : (Assignment ({x.variable} : Finset Variable)))
@@ -140,38 +186,20 @@ lemma substitute_trivial_property {vars}
     (h_incl : ∀ l ∈ C_1, l.variable ∈ vars)
     (h_C_1_conv_right : C_1.convert vars h_incl = C_0)
     (C_2 : Clause vars)
-    (h_C_2_conv : C_2 ∈ φ ∧ C_2.substitute ρ_false = some C_1)
-    : C_2 ⊆ C_0 ∪ ({x} : Clause vars) := by
-  intro l hl
+    (h_C_2_conv : C_2 ∈ φ ∧ C_2.substitute ρ_false = some C_1) :
+    C_2 ⊆ C_0 ∪ ({x} : Clause vars) := by
+  suffices C_0 =
+      ((C_2.substitute (fun _ _ => ¬x.polarity : Assignment {x.variable})).get (by aesop)).convert
+        vars (by
+          intro t
+          have := Literal.variable_mem_vars t
+          aesop) by
+    rw [this]
+    exact substitute_trivial_property_human_form
 
-  obtain ⟨left, right⟩ := h_C_2_conv
-  rw [← h_C_1_conv_right]
-
-
-  -- 3. Since l ∈ C_1.convert, there must be a source literal l' ∈ C_1
-  -- You'll likely need to unfold Clause.convert or use a lemma like 'mem_convert'
-  unfold Clause.convert
-  simp
-  by_cases l = x
-  case pos h_l =>
-    exact Or.symm (Or.inr h_l)
-  case neg h_l =>
-    refine Or.symm (Or.intro_left (l = x) ?_)
-    unfold Clause.substitute at right
-    simp at right
-    obtain ⟨h_sp_l, h_sp_r⟩ := right
-    -- aesop
-    -- unfold Clause.split
-    -- aesop
-    -- unfold Clause.shrink
-    -- aesop
-    -- unfold Clause.split at h_c
-    -- aesop
-    -- unfold Clause.shrink at h_c
-    -- aesop
-    -- unfold Clause.convert at h_c
-    -- simp at h_c
-    sorry
+  subst h_value_false
+  simp only [Bool.not_eq_true, Bool.decide_eq_false] at h_C_2_conv
+  simp_all
 
 @[aesop safe]
 lemma proof_size_positive {vars} {φ : CNFFormula vars} {c : Clause vars}
