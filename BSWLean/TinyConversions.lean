@@ -697,21 +697,6 @@ lemma substitute_trivial_property {vars}
     -- simp at h_c
     sorry
 
-lemma weaken_proof {vars} {φ : CNFFormula vars} {c c' : Clause vars}
-    (π : TreeLikeResolution φ c) (h_sub : c ⊆ c') :
-    ∃ (π' : TreeLikeResolution φ c'), IsRegularRes π → (IsRegularRes π' ∧ π'.size ≤ π.size) := by
-  -- This requires its own induction on π.
-  -- If you encounter a resolve node where the resolved variable is already in c',
-  -- you must bypass that node here as well to maintain IsRegularRes.
-  induction π with
-  | axiom_clause h_in =>
-      -- Base case is trivially regular
-      sorry
-      -- use TreeLikeResolution.axiom_clause h_in
-      -- simp [IsRegularRes, TreeLikeResolution.size]
-      -- sorry
-  | resolve c₁ c₂ v h_v_mem h_v_not π₁ π₂ h_res ih₁ ih₂ => sorry
-
 lemma eliminate_vacuous_resolutions_prep {vars} {φ : CNFFormula vars} {c : Clause vars}
     (π : TreeLikeResolution φ c) :
     ∃ (c' : Clause vars) (π' : TreeLikeResolution φ c'),
