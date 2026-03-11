@@ -6,6 +6,12 @@ def Literal.restrict {vars} (l : Literal vars) (sub_vars : Variables)
   | .pos v _ => Literal.pos v h_mem
   | .neg v _ => Literal.neg v h_mem
 
+@[simp]
+lemma Literal.restrict_variable {vars sub_vars} {l : Literal vars} (h_mem) :
+    (l.restrict sub_vars h_mem).variable = l.variable := by
+  unfold Literal.restrict
+  aesop
+
 lemma Literal.restrict_inj {vars sub_vars} {l₁ l₂ : Literal vars}
     (h_l₁_mem : l₁.variable ∈ sub_vars) (h_l₂_mem : l₂.variable ∈ sub_vars)
     (h_eq : l₁.restrict sub_vars h_l₁_mem = l₂.restrict sub_vars h_l₂_mem) : l₁ = l₂ := by
@@ -380,12 +386,41 @@ lemma Clause.substitute_variables {vars sub_vars} {c : Clause vars} (ρ : Assign
     unfold Literal.restrict Literal.variable at *
     aesop
 
-@[aesop unsafe]
-lemma Clause.substitute_card_leq_card {vars sub_vars} {c : Clause vars} {ρ : Assignment sub_vars}
-    (h) : ((c.substitute ρ).get h).card ≤ c.card := by
+@[aesop safe]
+lemma filterMap_card {α β} [DecidableEq α] [DecidableEq β] (s : Finset α) {f : α → Option β} {h} :
+    Finset.card (s.filterMap f h) ≤ Finset.card s := by
+  induction s using Finset.induction_on
+  case empty =>
+    rfl
+  case insert a s' h_a ih =>
+    have : (insert a s').card = s'.card + 1 := by
+      exact Finset.card_insert_of_notMem h_a
+    rw [this]
+    trans (Finset.filterMap f s' h).card + 1
+    swap
+    · simp [ih]
+    let b : Finset β := if h : (f a).isSome then {(f a).get h} else ∅
+    have : b.card ≤ 1 := by aesop
+    trans ((Finset.filterMap f s' h) ∪ b).card
+    swap
+    · simp_all only [b]
+      split
+      next h_1 =>
+        grind
+      next h_1 =>
+        simp_all
+    refine (Finset.eq_iff_card_ge_of_superset ?_).mpr ?_
+    · grind
+    · grind
+
+@[aesop safe]
+lemma Clause.substitute_card_leq_card {vars sub_vars} (c : Clause vars) (ρ : Assignment sub_vars)
+    {h} : ((c.substitute ρ).get h).card ≤ c.card := by
   unfold Clause.substitute Clause.split Clause.shrink
   simp only [Finset.mem_filter, Option.get_ite']
-  sorry
+  trans {l ∈ c | l.variable ∉ sub_vars}.card
+  · apply filterMap_card
+  · apply Finset.card_filter_le
 
 lemma Clause.substitute_resolve_eq_resolve_substitute {vars sub_vars} {c₁ c₂ : Clause vars}
     (ρ : Assignment sub_vars) (v : Variable) (h_v : v ∈ vars \ sub_vars) (h₁) (h₂)
@@ -397,4 +432,56 @@ lemma Clause.substitute_resolve_eq_resolve_substitute {vars sub_vars} {c₁ c₂
         rw [Finset.mem_sdiff] at h_v
         exact h_v.left
       )).substitute ρ).get h_res := by
-  sorry
+  unfold Clause.resolve Clause.substitute Clause.split Clause.shrink
+  simp_all only [Finset.mem_filter, Option.get_ite', Finset.mem_union, Finset.mem_erase, ne_eq]
+  ext l
+  constructor
+  · intro h_l
+    simp_all only [Finset.mem_union, Finset.mem_erase, ne_eq, Finset.mem_filterMap,
+      Finset.mem_filter, Option.dite_none_right_eq_some, Option.some.injEq, and_exists_self]
+    cases h_l
+    case h.mp.inl h =>
+      obtain ⟨h_neq, ⟨l', ⟨⟨h_l'_in, h_l'_var⟩, h_restrict⟩⟩⟩ := h
+      use l'
+      use by
+        constructor
+        swap
+        · assumption
+        left
+        constructor
+        · unfold Literal.restrict Variable.toLiteral Variable.toNegLiteral at *
+          aesop
+        · assumption
+    case h.mp.inr h =>
+      obtain ⟨h_neq, ⟨l', ⟨⟨h_l'_in, h_l'_var⟩, h_restrict⟩⟩⟩ := h
+      use l'
+      use by
+        constructor
+        swap
+        · assumption
+        right
+        constructor
+        · unfold Literal.restrict Variable.toLiteral Variable.toNegLiteral at *
+          aesop
+        · assumption
+  · intro h_l
+    simp_all only [Finset.mem_filterMap, Finset.mem_filter, Finset.mem_union, Finset.mem_erase,
+      ne_eq, Option.dite_none_right_eq_some, Option.some.injEq, and_exists_self]
+    obtain ⟨l', ⟨⟨h_l', h_l'_var⟩, h_restrict⟩⟩ := h_l
+    cases h_l'
+    case h.mpr.inl h =>
+      left
+      obtain ⟨h_l'_neq, h_l'_in⟩ := h
+      constructor
+      · unfold Literal.restrict Variable.toLiteral Variable.toNegLiteral at *
+        aesop
+      use l'
+      use by aesop
+    case h.mpr.inr h =>
+      right
+      obtain ⟨h_l'_neq, h_l'_in⟩ := h
+      constructor
+      · unfold Literal.restrict Variable.toLiteral Variable.toNegLiteral at *
+        aesop
+      use l'
+      use by aesop

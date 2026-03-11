@@ -34,36 +34,8 @@ lemma trivial_convert_card {vars₁ vars₂} {C : Clause vars₁} {h} :
   · exact Function.Injective.injOn fun ⦃a₁ a₂⦄ a ↦ a
   · exact (Finset.eq_iff_card_ge_of_superset fun ⦃a⦄ a_1 ↦ a_1).mpr rfl
 
-@[simp]
-lemma filterMap_card {α β} [DecidableEq α] [DecidableEq β] (s : Finset α) {f : α → Option β} {h} :
-    Finset.card (s.filterMap f h) ≤ Finset.card s := by
-  induction s using Finset.induction_on
-  case empty =>
-    rfl
-  case insert a s' h_a ih =>
-    have : (insert a s').card = s'.card + 1 := by
-      exact Finset.card_insert_of_notMem h_a
-    rw [this]
-    trans (Finset.filterMap f s' h).card + 1
-    swap
-    · simp [ih]
-    let b : Finset β := if h : (f a).isSome then {(f a).get h} else ∅
-    have : b.card ≤ 1 := by aesop
-    trans ((Finset.filterMap f s' h) ∪ b).card
-    swap
-    · simp_all only [b]
-      split
-      next h_1 =>
-        grind
-      next h_1 =>
-        simp_all
-    refine (Finset.eq_iff_card_ge_of_superset ?_).mpr ?_
-    · grind
-    · grind
-
-
 lemma convert_card_ineq {vars₁ vars₂} {C : Clause vars₁} {h}
-  : (C.convert vars₂ h).card ≤  C.card := by
+  : (C.convert vars₂ h).card ≤ C.card := by
   unfold Clause.convert
   exact filterMap_card C
 
