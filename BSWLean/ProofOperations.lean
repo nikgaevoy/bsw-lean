@@ -516,8 +516,154 @@ lemma resolution_restrict {vars₁ vars₂ : Variables} {φ : CNFFormula vars₂
       use π'
       aesop
 
+def TreeLikeResolution.regularize_rhs {vars : Variables} {φ : CNFFormula vars}
+    {c : Clause vars} (π : TreeLikeResolution φ c) : Clause vars :=
+  match π with
+  | .axiom_clause _ => c
+  | .resolve _ _ v h_v_mem _ π₁ π₂ _ =>
+    if v.toLiteral h_v_mem ∉ π₁.regularize_rhs then
+      π₁.regularize_rhs
+    else if v.toNegLiteral h_v_mem ∉ π₂.regularize_rhs then
+      π₂.regularize_rhs
+    else
+      π₁.regularize_rhs.resolve π₂.regularize_rhs v h_v_mem
+
+@[aesop safe]
+lemma TreeLikeResolution.regularize_rhs_subset {vars : Variables} {φ : CNFFormula vars}
+    {c : Clause vars} (π : TreeLikeResolution φ c) : π.regularize_rhs ⊆ c := by
+  induction π
+  case axiom_clause => aesop
+  case resolve c c₁ c₂ v h_v_mem h_v_not π₁ π₂ h_res ih₁ ih₂ =>
+    let c₁' := π₁.regularize_rhs
+    let c₂' := π₂.regularize_rhs
+
+    if h₁ : v.toLiteral h_v_mem ∉ c₁' then
+      unfold regularize_rhs
+      simp [c₁', h₁]
+      trans c₁ \ {v.toLiteral h_v_mem}
+      · grind
+      · grind
+    else if h₂ : v.toNegLiteral h_v_mem ∉ c₂' then
+      unfold regularize_rhs
+      simp [c₁', h₁, c₂', h₂]
+      trans c₂ \ {v.toNegLiteral h_v_mem}
+      · grind
+      · grind
+    else
+      unfold regularize_rhs
+      simp [c₁', h₁, c₂', h₂]
+      trans c₁.resolve c₂ v h_v_mem
+      · aesop
+      · unfold Clause.resolve
+        grind
+
+
+def TreeLikeResolution.regularize {vars : Variables} {φ : CNFFormula vars}
+    {c : Clause vars} (π : TreeLikeResolution φ c) : TreeLikeResolution φ π.regularize_rhs :=
+  match h : π with
+  | .axiom_clause _ => π.convert (by aesop)
+  | .resolve c₁ c₂ v h_v_mem h_v_not π₁ π₂ h_res =>
+    let c₁' := π₁.regularize_rhs
+    let c₂' := π₂.regularize_rhs
+
+    if h₁ : v.toLiteral h_v_mem ∉ c₁' then
+      π₁.regularize.convert (by
+        conv =>
+          rhs
+          unfold regularize_rhs
+        aesop)
+    else if h₂ : v.toNegLiteral h_v_mem ∉ c₂' then
+      π₂.regularize.convert (by
+        conv =>
+          rhs
+          unfold regularize_rhs
+        aesop)
+    else
+      have h_v_not' : v ∉ π.regularize_rhs.variables := by
+        by_contra!
+        have : v ∈ c.variables := by
+          apply clause_variable_mem_variables_maintains_subset _ this
+          aesop
+        contradiction
+      have h_res' : c₁' ⊆ π.regularize_rhs ∪ {v.toLiteral h_v_mem} ∧
+          c₂' ⊆ π.regularize_rhs ∪ {v.toNegLiteral h_v_mem} := by
+        unfold regularize_rhs
+        simp only [h, h₁, h₂, c₁', c₂', ↓reduceIte]
+        constructor
+        · apply Clause.resolve_satisfies_h_resolve_left
+        · apply Clause.resolve_satisfies_h_resolve_right
+
+      TreeLikeResolution.resolve c₁' c₂' v h_v_mem (by aesop)
+        π₁.regularize π₂.regularize (by aesop)
+
+@[aesop safe]
+lemma TreeLikeResolution.regularize_size {vars : Variables} {φ : CNFFormula vars}
+    {c : Clause vars} (π : TreeLikeResolution φ c) : π.regularize.size ≤ π.size := by
+  induction π
+  case axiom_clause => aesop
+  case resolve c c₁ c₂ v h_v_mem h_v_not π₁ π₂ h_res ih₁ ih₂ =>
+    let c₁' := π₁.regularize_rhs
+    let c₂' := π₂.regularize_rhs
+
+    if h₁ : v.toLiteral h_v_mem ∉ c₁' then
+      unfold regularize
+      simp only [h₁, not_false_eq_true, ↓reduceDIte, convert_trivial_size, ge_iff_le, c₁']
+      conv =>
+        rhs
+        unfold size
+      omega
+    else if h₂ : v.toNegLiteral h_v_mem ∉ c₂' then
+      unfold regularize
+      simp only [h₁, ↓reduceDIte, h₂, not_false_eq_true, convert_trivial_size, ge_iff_le, c₂', c₁']
+      conv =>
+        rhs
+        unfold size
+      omega
+    else
+      unfold regularize
+      simp only [h₁, ↓reduceDIte, h₂, ge_iff_le, c₂', c₁']
+      unfold size
+      omega
+
+@[simp]
+lemma TreeLikeResolution.convert_isRegularRes {vars} {φ : CNFFormula vars} {c : Clause vars}
+    (π : TreeLikeResolution φ c) (c' : Clause vars) (h : c = c') :
+    IsRegularRes (π.convert h) = IsRegularRes π := by
+  unfold convert
+  aesop
+
+@[aesop safe]
+lemma TreeLikeResolution.regularize_isRegularRes {vars : Variables} {φ : CNFFormula vars}
+    {c : Clause vars} (π : TreeLikeResolution φ c) : IsRegularRes π.regularize := by
+  induction h : π
+  case axiom_clause =>
+    unfold IsRegularRes regularize convert
+    aesop
+  case resolve c c₁ c₂ v h_v_mem h_v_not π₁ π₂ h_res ih₁ ih₂ =>
+    let c₁' := π₁.regularize_rhs
+    let c₂' := π₂.regularize_rhs
+
+    have h_π₁ := ih₁ π₁ rfl
+    have h_π₂ := ih₂ π₂ rfl
+
+    if h₁ : v.toLiteral h_v_mem ∉ c₁' then
+      unfold regularize
+      simp [h₁, c₁', h_π₁]
+    else if h₂ : v.toNegLiteral h_v_mem ∉ c₂' then
+      unfold regularize
+      simp [h₁, c₁', h₂, c₂', h_π₂]
+    else
+      unfold regularize
+      simp only [h₁, ↓reduceDIte, h₂, c₂', c₁']
+      unfold IsRegularRes
+      have : (v.toLiteral h_v_mem).variable ∈ c₁'.variables := by aesop
+      have : (v.toNegLiteral h_v_mem).variable ∈ c₂'.variables := by aesop
+      aesop
+
 lemma resolution_regularize {vars} {φ : CNFFormula vars} {c : Clause vars}
     (π : TreeLikeResolution φ c) :
     ∃ (c' : Clause vars) (π' : TreeLikeResolution φ c'),
       (c' ⊆ c) ∧ IsRegularRes π' ∧ π'.size ≤ π.size := by
-  sorry
+  use π.regularize_rhs
+  use π.regularize
+  aesop

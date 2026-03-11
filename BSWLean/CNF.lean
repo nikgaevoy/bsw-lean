@@ -70,6 +70,18 @@ lemma clause_variables_subset_vars {vars} (c : Clause vars) : c.variables ⊆ va
   unfold Literal.variable
   grind
 
+@[aesop unsafe]
+lemma clause_variables_maintains_subset {vars} {c₁ c₂ : Clause vars} (h_sub : c₁ ⊆ c₂) :
+    c₁.variables ⊆ c₂.variables := by
+  unfold Clause.variables
+  grind
+
+@[aesop unsafe]
+lemma clause_variable_mem_variables_maintains_subset {vars} {c₁ c₂ : Clause vars} (h_sub : c₁ ⊆ c₂)
+    {v : Variable} (h_v_mem : v ∈ c₁.variables) : v ∈ c₂.variables := by
+  have := clause_variables_maintains_subset h_sub
+  aesop
+
 abbrev CNFFormula (vars : Variables) := Finset (Clause vars)
 
 def Literal.eval {vars} (l : Literal vars) (a : Assignment vars) : Bool :=
