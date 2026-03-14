@@ -259,7 +259,7 @@ lemma resolve_ineq (vars sub_vars) (φ : CNFFormula vars) (var : Variable)
     (right : c_3 ⊆ c_1 ∪ {var.toNegLiteral h_4}) :
     Finset.card ((TreeLikeResolution.resolve c_2 c_3 var h_4 h_0 p_1 p_2
     (⟨left, right⟩ : c_2 ⊆ c_1 ∪ {var.toLiteral h_4} ∧
-      c_3 ⊆ c_1 ∪ {var.toNegLiteral h_4})).unsubstitute_rhs ρ h_subset) ≤
+      c_3 ⊆ c_1 ∪ {var.toNegLiteral h_4})).unsubstitute_rhs ρ) ≤
     max (Finset.card c_1) (max p_1.width p_2.width) + Finset.card sub_vars := by
   unfold TreeLikeResolution.unsubstitute_rhs
   simp
@@ -268,11 +268,11 @@ lemma resolve_ineq (vars sub_vars) (φ : CNFFormula vars) (var : Variable)
     aesop
   have var_incl : var ∈ vars := by
     grind
-  have idea₁ : (p_1.unsubstitute_rhs ρ h_subset) ⊆
+  have idea₁ : (p_1.unsubstitute_rhs ρ) ⊆
     (Clause.combine c_2 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars (inter_proof)
     := by
     exact TreeLikeResolution.unsubstitute_rhs_variables ρ p_1 h_subset
-  have idea₂ : (p_2.unsubstitute_rhs ρ h_subset) ⊆
+  have idea₂ : (p_2.unsubstitute_rhs ρ) ⊆
     (Clause.combine c_3 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars (inter_proof)
     := by
     exact TreeLikeResolution.unsubstitute_rhs_variables ρ p_2 h_subset
@@ -283,13 +283,13 @@ lemma resolve_ineq (vars sub_vars) (φ : CNFFormula vars) (var : Variable)
         (Finset.sdiff_subset h_4 : var ∈ vars))
 
   · have inter_idea :
-      ((p_1.unsubstitute_rhs ρ h_subset).resolve (p_2.unsubstitute_rhs ρ h_subset) var
+      ((p_1.unsubstitute_rhs ρ).resolve (p_2.unsubstitute_rhs ρ) var
         (Finset.sdiff_subset h_4 : var ∈ vars)) ⊆
       (((Clause.combine c_2 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars
         inter_proof).resolve ((Clause.combine c_3 ρ.toClause Finset.sdiff_disjoint).convert_trivial
           vars inter_proof) var (Finset.sdiff_subset h_4 : var ∈ vars)) := by
       exact
-        resolve_subsets var vars (p_1.unsubstitute_rhs ρ h_subset) (p_2.unsubstitute_rhs ρ h_subset)
+        resolve_subsets var vars (p_1.unsubstitute_rhs ρ) (p_2.unsubstitute_rhs ρ)
           ((c_2.combine ρ.toClause Finset.sdiff_disjoint).convert_trivial vars inter_proof)
           ((c_3.combine ρ.toClause Finset.sdiff_disjoint).convert_trivial vars inter_proof)
           (Finset.sdiff_subset h_4) idea₁ idea₂
@@ -344,14 +344,14 @@ lemma resolve_width_case (vars sub_vars) (φ : CNFFormula vars) (var : Variable)
     (h_v_mem_vars : v ∈ vars)
     (h_v_not_mem_c : v ∉ ((TreeLikeResolution.resolve c_2 c_3 var h_4 h_0 p_1 p_2
       (⟨left, right⟩ : c_2 ⊆ c_1 ∪ {var.toLiteral h_4} ∧ c_3 ⊆ c_1 ∪
-      {var.toNegLiteral h_4})).unsubstitute_rhs ρ h_subset).variables)
+      {var.toNegLiteral h_4})).unsubstitute_rhs ρ).variables)
     (left_1 : c₁ ⊆ (TreeLikeResolution.resolve c_2 c_3 var h_4 h_0 p_1 p_2
       (⟨left, right⟩ : c_2 ⊆ c_1 ∪ {var.toLiteral h_4} ∧
-      c_3 ⊆ c_1 ∪ {var.toNegLiteral h_4})).unsubstitute_rhs ρ h_subset ∪ {v.toLiteral h_v_mem_vars})
+      c_3 ⊆ c_1 ∪ {var.toNegLiteral h_4})).unsubstitute_rhs ρ ∪ {v.toLiteral h_v_mem_vars})
     (right_1 : c₂ ⊆
       (TreeLikeResolution.resolve c_2 c_3 var h_4 h_0 p_1 p_2
       (⟨left, right⟩ : c_2 ⊆ c_1 ∪ {var.toLiteral h_4} ∧
-        c_3 ⊆ c_1 ∪ {var.toNegLiteral h_4})).unsubstitute_rhs ρ h_subset ∪
+        c_3 ⊆ c_1 ∪ {var.toNegLiteral h_4})).unsubstitute_rhs ρ ∪
       {v.toNegLiteral h_v_mem_vars})
     (heq : (TreeLikeResolution.resolve c_2 c_3 var h_4 h_0 p_1 p_2
       (⟨left, right⟩ : c_2 ⊆ c_1 ∪ {var.toLiteral h_4} ∧
@@ -359,11 +359,11 @@ lemma resolve_width_case (vars sub_vars) (φ : CNFFormula vars) (var : Variable)
       TreeLikeResolution.resolve c₁ c₂ v h_v_mem_vars h_v_not_mem_c π₁ π₂
         (⟨left_1, right_1⟩ : c₁ ⊆ (TreeLikeResolution.resolve c_2 c_3 var h_4 h_0 p_1 p_2
         (⟨left, right⟩ : c_2 ⊆ c_1 ∪ {var.toLiteral h_4} ∧
-          c_3 ⊆ c_1 ∪ {var.toNegLiteral h_4})).unsubstitute_rhs ρ
-            h_subset ∪ {v.toLiteral h_v_mem_vars} ∧ c₂ ⊆
+          c_3 ⊆ c_1 ∪ {var.toNegLiteral h_4})).unsubstitute_rhs ρ ∪ {v.toLiteral h_v_mem_vars} ∧
+          c₂ ⊆
       (TreeLikeResolution.resolve c_2 c_3 var h_4 h_0 p_1 p_2 (⟨left, right⟩ :
-        c_2 ⊆ c_1 ∪ {var.toLiteral h_4} ∧ c_3 ⊆ c_1 ∪ {var.toNegLiteral h_4})).unsubstitute_rhs ρ
-          h_subset ∪ {v.toNegLiteral h_v_mem_vars}))
+        c_2 ⊆ c_1 ∪ {var.toLiteral h_4} ∧ c_3 ⊆ c_1 ∪ {var.toNegLiteral h_4})).unsubstitute_rhs ρ ∪
+          {v.toNegLiteral h_v_mem_vars}))
     (h_2 : (p_1.unsubstitute ρ h_subset).width ≤ p_1.width + Finset.card sub_vars)
     (h_3 : (p_2.unsubstitute ρ h_subset).width ≤ p_2.width + Finset.card sub_vars) :
     (π₁.width ≤ max (Finset.card c_1) (max p_1.width p_2.width) + Finset.card sub_vars) ∧
@@ -529,7 +529,7 @@ lemma ufold_one_literal {vars} {φ : CNFFormula vars}
     (h_value : ρ_true = (fun _ _ => (x.polarity : Bool)))
     (π_1 : TreeLikeRefutation (φ.substitute ρ_true))
     (fact₀ : {x.variable} ⊆ vars) :
-    (TreeLikeResolution.unsubstitute_rhs ρ_true π_1 fact₀) ⊆ ({x.negate} : Clause vars) := by
+    (TreeLikeResolution.unsubstitute_rhs ρ_true π_1) ⊆ ({x.negate} : Clause vars) := by
 
   unfold TreeLikeRefutation at π_1
 
@@ -537,7 +537,7 @@ lemma ufold_one_literal {vars} {φ : CNFFormula vars}
       (Finset.sdiff_disjoint : Disjoint (vars \ {x.variable}) {x.variable}) = vars := by
     aesop
 
-  have : (π_1.unsubstitute_rhs ρ_true fact₀) ⊆
+  have : (π_1.unsubstitute_rhs ρ_true) ⊆
       (Clause.combine (BotClause (vars \ {x.variable})) ρ_true.toClause
       Finset.sdiff_disjoint).convert_trivial vars trick := by
     exact TreeLikeResolution.unsubstitute_rhs_variables ρ_true π_1 fact₀
@@ -907,7 +907,7 @@ lemma width_combine (vars) {φ : CNFFormula vars}
 
   let π_1_unfolded := TreeLikeResolution.unsubstitute ρ_true π_1 fact₀
 
-  have idea₀ : (TreeLikeResolution.unsubstitute_rhs ρ_true π_1 fact₀) ⊆ ({x.negate}) := by
+  have idea₀ : (TreeLikeResolution.unsubstitute_rhs ρ_true π_1) ⊆ ({x.negate}) := by
     exact ufold_one_literal x h₀ ρ_true h_value π_1 fact₀
 
 

@@ -3,8 +3,26 @@ import BSWLean.Substitutions
 import BSWLean.Conversion
 import BSWLean.SuperCNF
 
+/-!
+# Tree-Like Resolution
+
+This file defines the tree-like Resolution proof system and proves it soundness and completeness.
+
+## Implementation notes
+
+The proof system is defined as an inductive type with two options (without an explicit weakening
+rule), but the resolution rule admits weakening inside.
+
+The interesting moment is unavoidable noncomputability of function `unsubstitute`. See the comment
+near the function for more details.
+-/
+
+/-- Tree-like Resolution proof system. Defines `φ ⊢ c`. -/
 inductive TreeLikeResolution {vars} (φ : CNFFormula vars) : (c : Clause vars) → Type where
+  /-- A clause that is present in the formula. -/
   | axiom_clause {c} (h_c_in_φ : c ∈ φ) : TreeLikeResolution φ c
+
+  /-- Resolution step. -/
   | resolve {c} (c₁ c₂ : Clause vars) (v : Variable)
       (h_v_mem_vars : v ∈ vars)
       (h_v_not_mem_c : v ∉ c.variables)
@@ -14,10 +32,14 @@ inductive TreeLikeResolution {vars} (φ : CNFFormula vars) : (c : Clause vars) �
                    (c₂ ⊆ c ∪ { v.toNegLiteral h_v_mem_vars }))
       : TreeLikeResolution φ c
 
+/-- Empty clause. -/
 abbrev BotClause (vars : Variables) : Clause vars := ∅
+
+/-- Defines a proof in tree-like Resolution. -/
 abbrev TreeLikeRefutation {vars} (φ : CNFFormula vars) :=
   TreeLikeResolution φ (BotClause vars)
 
+/-- Unsatisfiable formula defined as a formula that cannot be satisfied. -/
 class Unsat {vars} (f : CNFFormula vars) : Prop where
   h_unsat : ∀ a, f.eval a = false
 
@@ -64,7 +86,7 @@ lemma tree_like_proof_is_correct {vars} {φ : CNFFormula vars} {c : Clause vars}
       simp only [ne_eq, Bool.true_eq, Bool.not_eq_true]
       exact Bool.not_eq_eq_eq_not.mpr h
 
-
+/-- Tree-like Resolution is sound. -/
 theorem tree_like_refutation_implies_unsat {vars} {φ : CNFFormula vars}
     (π : TreeLikeRefutation φ) : Unsat φ := by
   unfold TreeLikeRefutation at π
@@ -191,28 +213,29 @@ lemma CNFFormula.substitute_maintains_unsat {vars sub_vars} {φ : CNFFormula var
   rw [h_eval_φ] at this
   contradiction
 
-
+/-- Size of the proof. -/
 def TreeLikeResolution.size {vars} {φ : CNFFormula vars} :
     ∀ {c : Clause vars}, TreeLikeResolution φ c → Nat
   | _, .axiom_clause _ => 1
   | _, .resolve _ _ _ _ _ π₁ π₂ _ => 1 + size π₁ + size π₂
 
+/-- Width of the proof. -/
 def TreeLikeResolution.width {vars} {φ : CNFFormula vars} :
     ∀ {c : Clause vars}, TreeLikeResolution φ c → Nat
   | C, .axiom_clause _ => C.card
   | C, .resolve _ _ _ _ _ π₁ π₂ _ => max C.card (max (width π₁) (width π₂))
 
+/-- Defines the right-hand-side of `TreeLikeResolution.unsubstitute`. -/
 noncomputable def TreeLikeResolution.unsubstitute_rhs {vars sub_vars} {c} {φ : CNFFormula vars}
-    (ρ : Assignment sub_vars) (π : TreeLikeResolution (φ.substitute ρ) c)
-    (h_subset : sub_vars ⊆ vars) : Clause vars :=
+    (ρ : Assignment sub_vars) (π : TreeLikeResolution (φ.substitute ρ) c) : Clause vars :=
   match π with
   | .axiom_clause h_c_in_φ =>
     let good := fun c' => (c'.substitute ρ) = some c
     have : ∃ c' ∈ φ, good c' := by exact CNFFormula.substitute_preimage h_c_in_φ
     Classical.choose this
   | .resolve c₁ c₂ x h_x_in h_x_out π₁ π₂ h =>
-    let c₁' := π₁.unsubstitute_rhs ρ h_subset
-    let c₂' := π₂.unsubstitute_rhs ρ h_subset
+    let c₁' := π₁.unsubstitute_rhs ρ
+    let c₂' := π₂.unsubstitute_rhs ρ
 
     have h_x_in_vars : x ∈ vars := by
       apply Finset.sdiff_subset
@@ -228,10 +251,10 @@ lemma finset_right_cup {vars} (x : Clause vars) (y : Clause vars) (z : Clause va
 lemma TreeLikeResolution.unsubstitute_rhs_variables {vars sub_vars} {c} {φ : CNFFormula vars}
     (ρ : Assignment sub_vars) (π : TreeLikeResolution (φ.substitute ρ) c)
     (h_subset : sub_vars ⊆ vars) :
-    (π.unsubstitute_rhs ρ h_subset) ⊆
+    (π.unsubstitute_rhs ρ) ⊆
       (Clause.combine c ρ.toClause Finset.sdiff_disjoint).convert_trivial vars (by aesop)
       := by
-  let c' := π.unsubstitute_rhs ρ h_subset
+  let c' := π.unsubstitute_rhs ρ
   let rhs := (Clause.combine c ρ.toClause Finset.sdiff_disjoint).convert_trivial vars (by aesop)
   induction π
   case axiom_clause c h_c_in_φ =>
@@ -290,11 +313,14 @@ lemma TreeLikeResolution.unsubstitute_rhs_variables {vars sub_vars} {c} {φ : CN
             assumption
           aesop
 
-
+/-- Transforms `φ.substitute ρ ⊢ c` into `φ ⊢ c ∨ ¬ρ`. Has to be noncomputable, because in the
+general setting, we need the axiom of choice to recover a clause in the axiom clause case.
+Making this function computable requires adding some structure to Variables (like total ordering),
+which we want to avoid. -/
 noncomputable def TreeLikeResolution.unsubstitute {vars} {sub_vars} {c} {φ : CNFFormula vars}
     (ρ : Assignment sub_vars) (π : TreeLikeResolution (φ.substitute ρ) c)
-    (h_subset : sub_vars ⊆ vars) : TreeLikeResolution φ (π.unsubstitute_rhs ρ h_subset) :=
-    let c' := π.unsubstitute_rhs ρ h_subset
+    (h_subset : sub_vars ⊆ vars) : TreeLikeResolution φ (π.unsubstitute_rhs ρ) :=
+    let c' := π.unsubstitute_rhs ρ
 
     match h_match : π with
     | .axiom_clause h_c_in_φ =>
@@ -311,8 +337,8 @@ noncomputable def TreeLikeResolution.unsubstitute {vars} {sub_vars} {c} {φ : CN
       let π₁' := π₁.unsubstitute ρ h_subset
       let π₂' := π₂.unsubstitute ρ h_subset
 
-      let c₁' := π₁.unsubstitute_rhs ρ h_subset
-      let c₂' := π₂.unsubstitute_rhs ρ h_subset
+      let c₁' := π₁.unsubstitute_rhs ρ
+      let c₂' := π₂.unsubstitute_rhs ρ
 
       have h_in : x ∈ vars := by
         have : vars \ sub_vars ⊆ vars := by aesop
@@ -355,6 +381,7 @@ lemma TreeLikeResolution.unsubstitute_size {vars sub_vars} {φ : CNFFormula vars
     unfold unsubstitute size
     linarith
 
+/-- Trivial conversion function, similar to `Clause.convert_trivial`. -/
 def TreeLikeResolution.convert {vars} {φ : CNFFormula vars} {c c' : Clause vars}
     (π : TreeLikeResolution φ c) (h : c = c') : TreeLikeResolution φ c' :=
   match h_match : π with
@@ -373,6 +400,7 @@ lemma right_cancel {x y : ℕ} (z : ℕ) : x ≤ y ↔ x + z ≤ y + z := by ome
 
 lemma left_cancel_one {x y : ℕ} : y ≥ 1 → x ≤ y - 1 → 1 + x ≤ 1 + y - 1 := by omega
 
+/-- Tree-like Resolution is complete. -/
 theorem unsat_implies_tree_like_refutation {vars} {φ : CNFFormula vars}
     (h_unsat : Unsat φ) : ∃ π : TreeLikeRefutation φ, π.size ≤ 2 * 2 ^ vars.card - 1 := by
   induction vars using Finset.induction_on'
@@ -455,8 +483,8 @@ theorem unsat_implies_tree_like_refutation {vars} {φ : CNFFormula vars}
         rw [this]
         rw [Nat.pow_add']
 
-    let c_true := π_true.unsubstitute_rhs ρ_true (by aesop)
-    let c_false := π_false.unsubstitute_rhs ρ_false (by aesop)
+    let c_true := π_true.unsubstitute_rhs ρ_true
+    let c_false := π_false.unsubstitute_rhs ρ_false
 
     have h_vars' : vars' = insert v vars' \ {v} := by aesop
     have h_convert : (Finset.disjUnion (insert v vars' \ {v}) {v} (Finset.sdiff_disjoint)) =
@@ -619,3 +647,5 @@ theorem unsat_implies_tree_like_refutation {vars} {φ : CNFFormula vars}
           · omega
         · unfold also_vars
           omega
+
+#lint

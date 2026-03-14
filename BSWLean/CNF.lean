@@ -1,10 +1,37 @@
 import Mathlib.Tactic
 import Mathlib.Data.Finset.Basic
 
+/-!
+# CNF-formulas
+
+This file defines all basic structures to work with: Variables, Literals, Clauses,
+CNF-Formulas, and Assignments.
+
+## Implementation notes
+
+Variables are defined as Strings. This is done solely for the sake of simplicity, to avoid writing
+another polymorphic argument in all lemmas and theorems. Any other type would also work just fine,
+as long as it satisfies `DecideableEQ`.
+
+Literals, Clauses and CNF-Formulas are defined on a specific set of variables.
+This design choice ultimately emerges from the necessity of defining completeness theorems for
+proof systems, but leads to some problems in other places. For the structures of different form,
+see SuperLiterals, SuperClauses, etc.
+-/
+
+/-- Definition of a variable. Strings could be replaced with any type -/
 abbrev Variable := String
-abbrev Variables := Finset String
+
+/-- Set of variables. Self explanatory. -/
+abbrev Variables := Finset Variable
+
+/-- Assignment. PArtial assignments are assignments on a subset of variables. It leads to a
+slightly different behavior of this set of variables than in the case of basically everything
+else, but it cannot be avoided. -/
 abbrev Assignment (vars : Variables) := (v : Variable) → v ∈ vars → Bool
 
+/-- Literals are defined on a specific set of variables, and a literal stores the proof that
+it's variable belongs to the set of variables. -/
 inductive Literal (vars : Variables)
   | pos (v : Variable) (h_v_mem_vars : v ∈ vars) : Literal vars
   | neg (v : Variable) (h_v_mem_vars : v ∈ vars) : Literal vars
@@ -13,9 +40,11 @@ deriving DecidableEq
 deriving instance DecidableEq
 for Variable
 
+/-- Constructor for a positive literal. -/
 def Variable.toLiteral {vars} (v : Variable) (h_v_mem_vars : v ∈ vars) : Literal vars :=
   Literal.pos v h_v_mem_vars
 
+/-- Constructor for a negative literal. -/
 def Variable.toNegLiteral {vars} (v : Variable) (h_v_mem_vars : v ∈ vars) : Literal vars :=
   Literal.neg v h_v_mem_vars
 
@@ -37,8 +66,10 @@ lemma Literal.eq_iff_polarity_and_variable_eq {vars} {l₁ l₂ : Literal vars} 
 lemma Literal.variable_mem_vars {vars} (l : Literal vars) : l.variable ∈ vars := by
   cases l <;> aesop
 
+/-- Clauses are defined as finite set of literals, so we lose the order of them. -/
 abbrev Clause (vars : Variables) := Finset (Literal vars)
 
+/-- The set of variables appearing in the clause. -/
 def Clause.variables {vars} (c : Clause vars) : Finset Variable :=
   c.image Literal.variable
 
@@ -65,6 +96,8 @@ lemma clause_variable_mem_variables_maintains_subset {vars} {c₁ c₂ : Clause 
   have := clause_variables_maintains_subset h_sub
   aesop
 
+/-- Similarly to `Clause`, just a set of clauses.
+This will lead to a `noncomputable` side-effects later. -/
 abbrev CNFFormula (vars : Variables) := Finset (Clause vars)
 
 def Literal.eval {vars} : Literal vars → Assignment vars → Bool
@@ -92,9 +125,11 @@ lemma Literal.neg_neg {vars} (l : Literal vars) : l.negate.negate = l := by
   unfold negate
   aesop
 
+/-- Evaluation function of a clause. -/
 def Clause.eval {vars} (c : Clause vars) (a : Assignment vars) : Bool :=
   c.fold (Bool.or) false (fun l => l.eval a)
 
+/-- Evaluation function of a formula. -/
 def CNFFormula.eval {vars} (φ : CNFFormula vars) (a : Assignment vars) : Bool :=
   φ.fold (Bool.and) true (fun c => c.eval a)
 
@@ -191,3 +226,5 @@ lemma Clause.resolve_satisfies_h_resolve_right {vars} {c₁ c₂ : Clause vars} 
   intro l h
   simp only [Finset.union_singleton, Finset.mem_insert, Finset.mem_union, Finset.mem_erase, ne_eq]
   tauto
+
+#lint

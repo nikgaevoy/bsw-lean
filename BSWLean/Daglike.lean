@@ -4,8 +4,19 @@ import BSWLean.Substitutions
 import BSWLean.SuperCNF
 import BSWLean.Treelike
 
+/-!
+# Resolution
+
+This file defines the DAG-like Resolution proof system and proves it soundness and completeness.
+The proof system is defined on a framework of blackboard proof systems.
+-/
+
+
+/-- Blackboard is a collection of inferred clauses. Equivalent to CNF-formula syntactically, but
+not semantically. Hence, this is a separate definition. -/
 abbrev Blackboard (vars : Variables) := CNFFormula vars
 
+/-- Defines `φ ⊢ b`, similar to `TreeLikeResolution`, with a blackboard instead of clause. -/
 inductive DagLikeResolutionStep {vars} (φ : CNFFormula vars) : Blackboard vars → Type
   | axioms : DagLikeResolutionStep φ φ
   | resolve
@@ -20,6 +31,7 @@ inductive DagLikeResolutionStep {vars} (φ : CNFFormula vars) : Blackboard vars 
                    (c₂ ⊆ c ∪ { v.toNegLiteral h_v_mem_vars }))
       : DagLikeResolutionStep φ (insert c b)
 
+/-- Defines the fact that we can make the inference `φ ⊢ c`, where `c` is a clause. -/
 @[aesop safe [constructors, cases]]
 inductive DagLikeResolution {vars} (φ : CNFFormula vars) : Clause vars → Type
   | intro {c}
@@ -28,9 +40,11 @@ inductive DagLikeResolution {vars} (φ : CNFFormula vars) : Clause vars → Type
       (h_c_in_b : c ∈ b)
       : DagLikeResolution φ c
 
+/-- Resolution proof system. -/
 abbrev DagLikeRefutation {vars} (φ : CNFFormula vars) :=
   DagLikeResolution φ (BotClause vars)
 
+/-- Size of the proof. -/
 def DagLikeResolutionStep.size {vars} {φ : CNFFormula vars}
     {b : Blackboard vars} (π : DagLikeResolutionStep φ b) : Nat :=
   match π with
@@ -38,24 +52,28 @@ def DagLikeResolutionStep.size {vars} {φ : CNFFormula vars}
   | .resolve π' _ _ _ _ _ _ _ _ _ =>
     1 + DagLikeResolutionStep.size π'
 
+/-- Size of the proof. -/
 @[aesop safe]
 def DagLikeResolution.size {vars} {φ : CNFFormula vars}
     {c : Clause vars} (π : DagLikeResolution φ c) : Nat :=
   match π with
   | .intro _ π' _ => π'.size
 
+/-- Returns the collection of all inferred clauses. -/
 @[aesop safe]
 def DagLikeResolution.Blackboard {vars} {φ : CNFFormula vars}
     {c : Clause vars} (π : DagLikeResolution φ c) : Blackboard vars :=
   match π with
   | .intro b _ _ => b
 
+/-- Unfolds proof into the blackboard framework. -/
 @[aesop safe]
 def DagLikeResolution.toStep {vars} {φ : CNFFormula vars} {c : Clause vars}
     (π : DagLikeResolution φ c) : DagLikeResolutionStep φ (DagLikeResolution.Blackboard π) :=
   match π with
   | .intro _ π' _ => π'
 
+/-- The right-hand-side of the inference. Has an unused argument, but it is intended. -/
 def DagLikeResolutionStep.blackboard {vars} {φ : CNFFormula vars}
     {b : Blackboard vars} (_ : DagLikeResolutionStep φ b) : Blackboard vars :=
   b
@@ -126,6 +144,7 @@ lemma DagLikeResolutionStep.concat {vars} {φ : CNFFormula vars}
     simp [DagLikeResolutionStep.size]
     omega
 
+/-- Collects all inferred clauses of a tree-like proof. -/
 def TreeLikeResolution.toBlackboard {vars} {φ : CNFFormula vars}
     {c : Clause vars} (π : TreeLikeResolution φ c) : Blackboard vars :=
   match π with
@@ -141,7 +160,8 @@ lemma TreeLikeResolution.toBlackboard_subset {vars} {φ : CNFFormula vars}
   case resolve =>
     grind
 
-noncomputable def TreeLikeResolution.toDagLike {vars} {c : Clause vars} {φ : CNFFormula vars}
+/-- Transforms a tree-like proof DAG-like form. -/
+lemma TreeLikeResolution.toDagLike {vars} {c : Clause vars} {φ : CNFFormula vars}
     (π : TreeLikeResolution φ c) : ∃ π_dag : DagLikeResolution φ c, π_dag.size ≤ π.size := by
   induction π
   case axiom_clause c h =>
@@ -166,6 +186,7 @@ noncomputable def TreeLikeResolution.toDagLike {vars} {c : Clause vars} {φ : CN
     simp only at h_size₁ h_size₂
     omega
 
+/-- Resolution is complete. -/
 theorem DagLikeRefutation.completeness {vars} {φ : CNFFormula vars}
     (h_unsat : Unsat φ) : ∃ π : DagLikeRefutation φ, π.size ≤ 2 * 2 ^ vars.card - 1 := by
   obtain ⟨π_tree, h_refutes⟩ := unsat_implies_tree_like_refutation h_unsat
@@ -174,6 +195,7 @@ theorem DagLikeRefutation.completeness {vars} {φ : CNFFormula vars}
   trans π_tree.size
   all_goals assumption
 
+/-- Transforms a DAG-like proof into the tree-like form. -/
 def DagLikeResolutionStep.toTreeLike {vars} {φ : CNFFormula vars} {b : Blackboard vars}
     (π : DagLikeResolutionStep φ b) (c : Clause vars) (h_c_in_b : c ∈ b) :
     TreeLikeResolution φ c :=
@@ -189,7 +211,12 @@ def DagLikeResolutionStep.toTreeLike {vars} {φ : CNFFormula vars} {b : Blackboa
     else
       π'.toTreeLike c (by aesop)
 
+/-- Resolution is sound. -/
 theorem DagLikeRefutation.correctness {vars} {φ : CNFFormula vars} (π : DagLikeRefutation φ) :
     Unsat φ := by
   let π' := π.toStep.toTreeLike (BotClause vars) (by aesop)
   exact tree_like_refutation_implies_unsat π'
+
+#lint only checkType checkUnivs defLemma deprecatedNoSince docBlame dupNamespace explicitVarsOfIff
+  impossibleInstance nonClassInstance simpComm simpNF simpVarHead structureInType synTaut
+  unusedHavesSuffices

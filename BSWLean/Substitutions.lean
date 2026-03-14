@@ -1,5 +1,22 @@
 import BSWLean.CNF
 
+/-!
+# Partial substitution to a formula
+
+This file defines all basic structures to work with: Variables, Literals, Clauses,
+CNF-Formulas, and Assignments.
+
+## Implementation notes
+
+Because applying a partial assignment changes the set of variables, this file also provides a ton
+of functions for conversions between different sets of variables.
+
+Another point of interest is `filterMap_card` function. It turns out that this statement was not
+proven in the standard library, so we proved it here by induction.
+-/
+
+
+/-- Converts a literal to a literal over different set of variables. -/
 def Literal.restrict {vars} (l : Literal vars) (sub_vars : Variables)
     (h_mem : l.variable ∈ sub_vars) : Literal sub_vars :=
   match l with
@@ -24,6 +41,7 @@ lemma Literal.restrict_inj {vars sub_vars} {l₁ l₂ : Literal vars}
   unfold Literal.restrict at h_eq
   cases l₁ <;> cases l₂ <;> simp_all
 
+/-- Converts a clause to a clause with different set of variables. -/
 def Clause.shrink {vars} (c : Clause vars) (keep_vars : Variables)
     (h_mem : ∀ l, l ∈ c → l.variable ∈ keep_vars) : Clause keep_vars :=
   let f := fun l : Literal vars =>
@@ -43,6 +61,8 @@ def Clause.shrink {vars} (c : Clause vars) (keep_vars : Variables)
 
   c.filterMap f this
 
+/-- Splits clause `c` into two clauses `c_in` and `c_out` based on inclusion of literals to
+`sub_vars`. It is guaranteed that `c = c_in ∨ c_out`. -/
 def Clause.split {vars} (c : Clause vars) (split_vars : Variables) :
     (Clause (vars ∩ split_vars)) × (Clause (vars \ split_vars)) :=
   let c_in := c.filter (fun l => l.variable ∈ split_vars)
@@ -71,6 +91,7 @@ def Clause.split {vars} (c : Clause vars) (split_vars : Variables) :
 
   (c_in', c_out')
 
+/-- Generates a partial assignment over a subset of variables. -/
 def Assignment.restrict {vars} (ρ : Assignment vars) (sub_vars : Variables)
     (h_subset : sub_vars ⊆ vars) : Assignment sub_vars :=
   have : ∀ v ∈ sub_vars, v ∈ vars := by
@@ -92,6 +113,8 @@ lemma Literal.restrict_correctness {vars sub_vars} {l : Literal vars} {ρ : Assi
   unfold Literal.restrict
   aesop
 
+/-- Substitutes a partial assignment to a clause. Returns none if clause is satisfied and
+the clause after substitution otherwise. -/
 def Clause.substitute {vars sub_vars} (c : Clause vars) (ρ : Assignment sub_vars) :
     Option (Clause (vars \ sub_vars)) :=
   let (c_in, c_out) := Clause.split c sub_vars
@@ -202,6 +225,7 @@ lemma Clause.split_correctness {vars} (c : Clause vars) (sub_vars : Variables)
       rw [Clause.eval_eq_false_iff_all_falsified_literals] at h_c
       aesop
 
+/-- Partial substitution to a formula. -/
 def CNFFormula.substitute {vars sub_vars} (φ : CNFFormula vars)
     (ρ : Assignment sub_vars) : CNFFormula (vars \ sub_vars) :=
   let f := fun c : Clause vars => c.substitute ρ
@@ -392,6 +416,8 @@ lemma Clause.substitute_variables {vars sub_vars} {c : Clause vars} (ρ : Assign
     unfold Literal.restrict Literal.variable at *
     aesop
 
+/-- Cardinaly of the image of filterMap cannot be larger than preimage.
+This statement does not follow from the lemmas in the standard library, so we prove it here. -/
 @[aesop safe]
 lemma filterMap_card {α β} [DecidableEq α] [DecidableEq β] (s : Finset α) {f : α → Option β} {h} :
     Finset.card (s.filterMap f h) ≤ Finset.card s := by
@@ -491,3 +517,5 @@ lemma Clause.substitute_resolve_eq_resolve_substitute {vars sub_vars} {c₁ c₂
         aesop
       use l'
       use by aesop
+
+#lint

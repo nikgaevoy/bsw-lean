@@ -1,6 +1,16 @@
 import BSWLean.Treelike
 import BSWLean.ProofOperations
 
+/-!
+# TinyConversions
+
+This is a file connecting `SizeWidth` to the rest of the project.
+
+It proves technical lemmas needed for the lower bounds, that are stated on structures defined
+outside of `SizeWidth`.
+-/
+
+/-- A technical function used in `SizeWidth`. -/
 def is_resolve {vars} {φ : CNFFormula vars} {c : Clause vars} :
     TreeLikeResolution φ c → Prop
   | .axiom_clause _ => false
@@ -225,3 +235,5 @@ lemma size_one_proof {vars} (φ : CNFFormula vars)
     trans 1 + π₁.size
     · aesop
     · aesop
+
+#lint

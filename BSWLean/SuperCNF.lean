@@ -2,29 +2,53 @@ import BSWLean.CNF
 import BSWLean.Substitutions
 import BSWLean.Conversion
 
+/-!
+# Super-CNF-Formulas
+
+A different way to define literals, clauses and CNF-formulas without a set of variables as a
+polymorphic argument. Used to prove lemmas about conversions of previously defined literals and
+clauses.
+
+## Implementation notes
+
+The absence of the polymorphic parameter allows us to use the standard `Equivalence` class, which
+makes proving complex statements easier.
+-/
+
+/-- The analog of `Literal`. -/
 structure SuperLiteral where
+  /-- The set of variables -/
   vars : Variables
+
+  /-- The literal itself -/
   lit : Literal vars
 
 deriving instance DecidableEq
 for SuperLiteral
 
+/-- The analog of `Clause`. -/
 structure SuperClause where
+  /-- The set of variables -/
   vars : Variables
+
+  /-- Stored clause -/
   clause : Clause vars
 
 deriving instance DecidableEq
 for SuperClause
 
+/-- `Literal ↦ SuperLiteral` -/
 def Literal.toSuperLiteral {vars} (l : Literal vars) : SuperLiteral :=
   SuperLiteral.mk vars l
 
+/-- Conversion function for regular literals. -/
 def Literal.convert {vars₁ : Variables} (l : Literal vars₁) (vars₂ : Variables)
     (h_mem : l.variable ∈ vars₂) : Literal vars₂ :=
   match l with
   | .pos v _ => Literal.pos v h_mem
   | .neg v _ => Literal.neg v h_mem
 
+/-- `SuperLiteral ↦ Literal` -/
 def SuperLiteral.toLiteral (sl : SuperLiteral) (vars : Variables) : Option (Literal vars) :=
   if h : sl.vars == vars then
     some (sl.lit.convert vars (by aesop))
@@ -62,9 +86,12 @@ lemma SuperLiteral.toLiteral_eq_none_iff_wrong_vars {vars} (sl : SuperLiteral) :
 
   aesop
 
+/-- The equivalence class for literals. Cannot be plugged in to `Equivalence` since it is defined
+for objects of two different types. -/
 class LiteralEquiv {vars₁ vars₂} (l₁ : Literal vars₁) (l₂ : Literal vars₂) : Prop where
   h_equiv : l₁.variable = l₂.variable ∧ l₁.polarity = l₂.polarity
 
+/-- A class to prove `Equivalence`. -/
 class SuperLiteralEquiv (sl₁ sl₂ : SuperLiteral) : Prop where
   h_equiv : LiteralEquiv sl₁.lit sl₂.lit
 
@@ -86,7 +113,7 @@ lemma Literal.equiv_equiv {vars} (c₁ c₂ : Literal vars) : LiteralEquiv c₁ 
 
     aesop
 
-@[aesop safe]
+@[aesop unsafe]
 lemma Literal.equiv_trans {vars₁} {vars₂} {vars₃}
     {l₁ : Literal vars₁} (l₂ : Literal vars₂) {l₃ : Literal vars₃}
     (h_12 : LiteralEquiv l₁ l₂) (h_23 : LiteralEquiv l₂ l₃) : LiteralEquiv l₁ l₃ := by
@@ -163,11 +190,11 @@ lemma Literal.eqiuv_SuperLiteral {vars} (l : Literal vars) (sl : SuperLiteral) :
     unfold Literal.toSuperLiteral at h
     aesop
 
+/-- Conversion function for super-literals. -/
 def SuperLiteral.convert (sl : SuperLiteral) (vars : Variables)
     (h_mem : sl.lit.variable ∈ vars) : SuperLiteral :=
   SuperLiteral.mk vars (sl.lit.convert vars h_mem)
 
-@[simp]
 lemma SuperLiteral.convert_equivalence (sl : SuperLiteral) (vars : Variables) {h} :
     SuperLiteralEquiv sl (sl.convert vars h) := by
   unfold SuperLiteral.convert
@@ -202,6 +229,7 @@ lemma SuperLiteral.equiv_iff_LiteralEquiv (sl₁ sl₂ : SuperLiteral) :
     unfold SuperLiteral.toLiteral at h
     aesop
 
+/-- Conversion function for clauses. -/
 def Clause.convert {vars₁ : Variables} (c : Clause vars₁) (vars₂ : Variables)
     (h_mem : ∀ l ∈ c, l.variable ∈ vars₂) : Clause vars₂ :=
   let q := fun l => if h: l ∈ c then some (Literal.convert l vars₂ (h_mem l h)) else none
@@ -212,6 +240,7 @@ def Clause.convert {vars₁ : Variables} (c : Clause vars₁) (vars₂ : Variabl
 
   c.filterMap q this
 
+/-- Conversion for CNF-formulas. -/
 def CNFFormula.simple_convert (vars₁ : Variables) (vars₂ : Variables) (φ : CNFFormula vars₁)
     (h_subs : vars₁ ⊆ vars₂) : CNFFormula vars₂ :=
   φ.image (fun c =>
@@ -221,25 +250,32 @@ def CNFFormula.simple_convert (vars₁ : Variables) (vars₂ : Variables) (φ : 
     simp_all only [Literal.variable_mem_vars])
   )
 
+/-- Sometimes we have two different definitions of the same set of variables. This function
+trivially converts from one definition to another. -/
 def Clause.convert_trivial {vars₁ : Variables} (c : Clause vars₁) (vars₂ : Variables)
     (h_mem : vars₁ = vars₂) : Clause vars₂ :=
   c.convert vars₂ (by aesop)
 
+/-- A class to represent `c₁ ⊆ c₂` for a pair of clauses of two different types. -/
 class ClauseSubset {vars₁} {vars₂} (c₁ : Clause vars₁) (c₂ : Clause vars₂) : Prop where
   h_subset : ∀ l ∈ c₁, ∃ l' ∈ c₂, LiteralEquiv l l'
 
+/-- An equivalence class for clauses. Similar problem with two different types as we had with
+`LiteralEquiv`. -/
 class ClauseEquiv {vars₁} {vars₂} (c₁ : Clause vars₁) (c₂ : Clause vars₂) : Prop where
   h_mp : ClauseSubset c₁ c₂
   h_mpr : ClauseSubset c₂ c₁
 
-class SuperClauseSubset (sc₁ : SuperClause) (sc₂ : SuperClause) : Prop where
+/-- `sc₁ ⊆ sc₂`. -/
+class SuperClauseSubset (sc₁ sc₂ : SuperClause) : Prop where
   h_subset : ClauseSubset sc₁.clause sc₂.clause
 
-class SuperClauseEquiv (sc₁ : SuperClause) (sc₂ : SuperClause) : Prop where
+/-- A class to plug into `Equivalence`. -/
+class SuperClauseEquiv (sc₁ sc₂ : SuperClause) : Prop where
   h_equiv : ClauseEquiv sc₁.clause sc₂.clause
 
 @[simp]
-lemma Clause.equiv_equiv {vars} (c₁ : Clause vars) (c₂ : Clause vars) :
+lemma Clause.ClauseEquiv_iff_eq {vars} (c₁ c₂ : Clause vars) :
     ClauseEquiv c₁ c₂ ↔ c₁ = c₂ := by
   constructor
 
@@ -259,7 +295,7 @@ lemma Clause.equiv_equiv {vars} (c₁ : Clause vars) (c₂ : Clause vars) :
     · constructor
       aesop
 
-@[simp]
+@[aesop unsafe]
 lemma Clause.subset_trans {vars₁} {vars₂} {vars₃}
     {c₁ : Clause vars₁} (c₂ : Clause vars₂) {c₃ : Clause vars₃}
     (h_12 : ClauseSubset c₁ c₂) (h_23 : ClauseSubset c₂ c₃) : ClauseSubset c₁ c₃ := by
@@ -303,9 +339,11 @@ lemma SuperClause.equiv_Equivalence : Equivalence SuperClauseEquiv := by
       · exact h_yz.h_equiv.h_mpr
       · exact h_xy.h_equiv.h_mpr
 
+/-- `Clause ↦ SuperClause`. -/
 def Clause.toSuperClause {vars} (c : Clause vars) : SuperClause :=
   SuperClause.mk vars c
 
+/-- `SuperClause ↦ Clause`. -/
 def SuperClause.toClause (sc : SuperClause) (vars : Variables) : Option (Clause vars) :=
   if h : sc.vars = vars then
     some (sc.clause.convert vars (by aesop))
@@ -369,7 +407,7 @@ lemma Clause.equiv_sym {vars₁ vars₂} {c₁ : Clause vars₁} {c₂ : Clause 
   · exact ClauseEquiv.h_mpr
   · exact ClauseEquiv.h_mp
 
-@[simp]
+@[aesop unsafe]
 lemma Clause.equiv_trans {vars₁ vars₂ vars₃}
     {c₁ : Clause vars₁} (c₂ : Clause vars₂) {c₃ : Clause vars₃}
     (h_12 : ClauseEquiv c₁ c₂) (h_23 : ClauseEquiv c₂ c₃) : ClauseEquiv c₁ c₃ := by
@@ -421,11 +459,12 @@ lemma Clause.convert_equiv {vars₁} {vars₂} (c : Clause vars₁) {h} :
     · constructor
       aesop
 
+/-- Conversion for super-clauses. The important point that it does not change the type. -/
 def SuperClause.convert (cl : SuperClause) (vars : Variables)
     (h_mem : ∀ l ∈ cl.clause, l.variable ∈ vars) : SuperClause :=
   SuperClause.mk vars (cl.clause.convert vars h_mem)
 
-@[simp]
+@[aesop safe]
 lemma SuperClause.convert_equivalence (sc : SuperClause) (vars : Variables) {h} :
     SuperClauseEquiv sc (sc.convert vars h) := by
   unfold SuperClause.convert
@@ -446,11 +485,6 @@ lemma SuperClause.convert_equivalence (sc : SuperClause) (vars : Variables) {h} 
     intro l h_l
     unfold Clause.convert at *
     aesop
-
-@[simp]
-lemma Clause.ClauseEquiv_iff_eq {vars} (c₁ c₂ : Clause vars) :
-    ClauseEquiv c₁ c₂ ↔ c₁ = c₂ := by
-  aesop
 
 @[simp]
 lemma Clause.convert_keeps_literals {vars₁ : Variables} {c : Clause vars₁} {l : Literal vars₁}
@@ -501,6 +535,7 @@ lemma Clause.convert_convert {vars₁ vars₂ vars₃ : Variables} (c : Clause v
   · assumption
   · assumption
 
+/-- Class defining the fact that two assignments agree on their intersection. -/
 class Agree {vars₁} {vars₂} (ρ₁ : Assignment vars₁) (ρ₂ : Assignment vars₂) : Prop where
   h_agree : ∀ v ∈ vars₁ ∩ vars₂, ∀ h₁ h₂, (ρ₁ v h₁) = (ρ₂ v h₂)
 
@@ -547,7 +582,7 @@ lemma Clause.convert_eval {vars sub_vars : Variables}
     tauto
 
 
-@[simp]
+@[aesop unsafe]
 lemma convert_agree_eval {vars₁ vars₂} (c₁ : Clause vars₁) (ρ₁ : Assignment vars₁)
     (c₂ : Clause vars₂) (ρ₂ : Assignment vars₂) (h_equiv : ClauseEquiv c₁ c₂)
     (h_agree : Agree ρ₁ ρ₂) : c₁.eval ρ₁ = c₂.eval ρ₂ := by
@@ -591,7 +626,7 @@ lemma convert_agree_eval {vars₁ vars₂} (c₁ : Clause vars₁) (ρ₁ : Assi
     rw [Clause.convert_eval]
 
   have : c₁' = c₂' := by
-    refine (Clause.equiv_equiv c₁' c₂').mp ?_
+    refine (Clause.ClauseEquiv_iff_eq c₁' c₂').mp ?_
     have h₁ : ClauseEquiv c₁ c₁' := by
       unfold c₁'
       apply Clause.equiv_sym
@@ -718,6 +753,7 @@ lemma Clause.convert_maintains_subset_insert {vars₁ : Variables} (c₁ : Claus
   · exact ClauseEquiv.h_mp
   · assumption
 
+/-- Combines two clauses into one. Inverse function to `Clause.split`. -/
 def Clause.combine {vars₁} {vars₂} (c₁ : Clause vars₁) (c₂ : Clause vars₂)
     (h : Disjoint vars₁ vars₂) : Clause (vars₁.disjUnion vars₂ h) :=
     let vars := (vars₁.disjUnion vars₂ h)
@@ -896,3 +932,5 @@ lemma Clause.convert_maintains_eq {vars₁ vars₂} {c₁ c₂ : Clause vars₁}
 
   constructor
   all_goals aesop
+
+#lint

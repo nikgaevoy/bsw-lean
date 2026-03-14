@@ -1,5 +1,13 @@
 import BSWLean.Treelike
 
+/-!
+# Operations on Proofs
+
+This file defines functions `restrict` and `regularize` for tree-like proofs.
+Both functions are structured similarly to `unsubstitute` needed for proving lower bounds.
+-/
+
+/-- A technical property of the proof that is needed to prove lower bounds. -/
 def IsRegularRes {vars} {φ : CNFFormula vars} : ∀ {c : Clause vars}, TreeLikeResolution φ c → Prop
   | _, .axiom_clause _ => True
   | _, .resolve c₁ c₂ v _ _ π₁ π₂ _ =>
@@ -53,6 +61,7 @@ lemma resolve_substitute_right {vars sub_vars} (c₁ c₂ : Clause vars) {x : Va
     (by aesop) h_l₁_var_in_sub_vars (by rfl)
   aesop
 
+/-- Defines right-hand-side of the `restrict` function. -/
 def TreeLikeResolution.restrict_rhs {vars₁ vars₂ : Variables} {φ : CNFFormula vars₂}
     {c : Clause vars₂} (π : TreeLikeResolution φ c) (ρ : Assignment vars₁)
     (h_some : (c.substitute ρ).isSome) :
@@ -254,6 +263,7 @@ lemma TreeLikeResolution.restrict_rhs_subset_substitute {vars₁ vars₂ : Varia
                 aesop
               · exact h_l'_mem.left
 
+/-- Constructs a proof after a partial substitution to a formula. -/
 def TreeLikeResolution.restrict {vars₁ vars₂ : Variables} {φ : CNFFormula vars₂}
     {c : Clause vars₂} (π : TreeLikeResolution φ c) (ρ : Assignment vars₁)
     (h_some : (c.substitute ρ).isSome) :
@@ -516,6 +526,7 @@ lemma resolution_restrict {vars₁ vars₂ : Variables} {φ : CNFFormula vars₂
       use π'
       aesop
 
+/-- Defines right-hand-side of the `regularize` function. -/
 def TreeLikeResolution.regularize_rhs {vars : Variables} {φ : CNFFormula vars}
     {c : Clause vars} (π : TreeLikeResolution φ c) : Clause vars :=
   match π with
@@ -557,7 +568,7 @@ lemma TreeLikeResolution.regularize_rhs_subset {vars : Variables} {φ : CNFFormu
       · unfold Clause.resolve
         grind
 
-
+/-- Enforces `IsRegularRes` property, while strengthening the proof. -/
 def TreeLikeResolution.regularize {vars : Variables} {φ : CNFFormula vars}
     {c : Clause vars} (π : TreeLikeResolution φ c) : TreeLikeResolution φ π.regularize_rhs :=
   match h : π with
@@ -667,3 +678,5 @@ lemma resolution_regularize {vars} {φ : CNFFormula vars} {c : Clause vars}
   use π.regularize_rhs
   use π.regularize
   aesop
+
+#lint
