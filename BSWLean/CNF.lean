@@ -48,10 +48,12 @@ def Variable.toLiteral {vars} (v : Variable) (h_v_mem_vars : v ∈ vars) : Liter
 def Variable.toNegLiteral {vars} (v : Variable) (h_v_mem_vars : v ∈ vars) : Literal vars :=
   Literal.neg v h_v_mem_vars
 
+/-- Reverse conversion. -/
 def Literal.variable {vars} : (l : Literal vars) → Variable
   | .pos v _ => v
   | .neg v _ => v
 
+/-- `True` if literal is positive and `False` otherwise. -/
 def Literal.polarity {vars} : (l : Literal vars) → Bool
   | .pos _ _ => True
   | .neg _ _ => False
@@ -100,10 +102,12 @@ lemma clause_variable_mem_variables_maintains_subset {vars} {c₁ c₂ : Clause 
 This will lead to a `noncomputable` side-effects later. -/
 abbrev CNFFormula (vars : Variables) := Finset (Clause vars)
 
+/-- Evaluation function of a literal. -/
 def Literal.eval {vars} : Literal vars → Assignment vars → Bool
   | .pos v h_v_mem_vars, a => a v h_v_mem_vars
   | .neg v h_v_mem_vars, a => !(a v h_v_mem_vars)
 
+/-- l ↦ ¬l -/
 def Literal.negate {vars} : Literal vars → Literal vars
   | .pos v h_v_mem_vars => Literal.neg v h_v_mem_vars
   | .neg v h_v_mem_vars => Literal.pos v h_v_mem_vars
@@ -177,7 +181,9 @@ lemma Clause.eval_eq_false_iff_all_falsified_literals {vars} (c : Clause vars)
     (a : Assignment vars) : c.eval a = false ↔ (∀ l, l ∈ c → l.eval a = false) := by
   grind [eval_eq_true_iff_exists_satisfied_literal]
 
-def Clause.resolve {vars} (c₁ c₂ : Clause vars) (x : Variable) (h_x : x ∈ vars) :=
+/-- The result of application of the Resolution rule to a pair of clauses.
+Does not require the resolution variable `x` to be present in both clauses. -/
+def Clause.resolve {vars} (c₁ c₂ : Clause vars) (x : Variable) (h_x : x ∈ vars) : Clause (vars) :=
   c₁.erase (x.toLiteral h_x) ∪ c₂.erase (x.toNegLiteral h_x)
 
 @[aesop unsafe]

@@ -72,3 +72,5 @@ lemma Assignment.toClause_variables {vars} (ρ : Assignment vars) : ρ.toClause.
     · simp [Literal.variable_mem_vars]
     · grind [Assignment.negVariable, Variable.toLiteral, Variable.toNegLiteral, Literal.eval]
   · aesop
+
+#lint
