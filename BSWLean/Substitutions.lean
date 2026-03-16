@@ -17,76 +17,52 @@ proven in the standard library, so we proved it here by induction.
 
 
 /-- Converts a literal to a literal over different set of variables. -/
+@[aesop safe [unfold]]
 def Literal.restrict {vars} (l : Literal vars) (sub_vars : Variables)
     (h_mem : l.variable ∈ sub_vars) : Literal sub_vars :=
-  match l with
-  | .pos v _ => Literal.pos v h_mem
-  | .neg v _ => Literal.neg v h_mem
+  Literal.mk ⟨l.variable, h_mem⟩ l.polarity
 
-@[simp]
+@[simp, grind =]
 lemma Literal.restrict_polarity {vars sub_vars} {l : Literal vars} (h_mem) :
-    (l.restrict sub_vars h_mem).polarity = l.polarity := by
-  unfold Literal.restrict
-  aesop
+    (l.restrict sub_vars h_mem).polarity = l.polarity := by aesop
 
-@[simp]
+@[simp, grind =]
 lemma Literal.restrict_variable {vars sub_vars} {l : Literal vars} (h_mem) :
-    (l.restrict sub_vars h_mem).variable = l.variable := by
-  unfold Literal.restrict
-  aesop
+    (l.restrict sub_vars h_mem).variable = l.variable := by aesop
+
+@[simp, grind =]
+lemma Literal.restrict_toLiteral {vars sub_vars} {v : Variable} (h₁ : v ∈ vars) (h₂) :
+    ((v.toLiteral h₁).restrict sub_vars h₂) = (v.toLiteral h₂) := by aesop
+
+@[simp, grind =]
+lemma Literal.restrict_toNegLiteral {vars sub_vars} {v : Variable} (h₁ : v ∈ vars) (h₂) :
+    ((v.toNegLiteral h₁).restrict sub_vars h₂) = (v.toNegLiteral h₂) := by aesop
 
 lemma Literal.restrict_inj {vars sub_vars} {l₁ l₂ : Literal vars}
     (h_l₁_mem : l₁.variable ∈ sub_vars) (h_l₂_mem : l₂.variable ∈ sub_vars)
-    (h_eq : l₁.restrict sub_vars h_l₁_mem = l₂.restrict sub_vars h_l₂_mem) : l₁ = l₂ := by
-  unfold Literal.restrict at h_eq
-  cases l₁ <;> cases l₂ <;> simp_all
+    (h_eq : l₁.restrict sub_vars h_l₁_mem = l₂.restrict sub_vars h_l₂_mem) : l₁ = l₂ := by aesop
 
 /-- Converts a clause to a clause with different set of variables. -/
+@[simp]
 def Clause.shrink {vars} (c : Clause vars) (keep_vars : Variables)
     (h_mem : ∀ l, l ∈ c → l.variable ∈ keep_vars) : Clause keep_vars :=
   let f := fun l : Literal vars =>
       if h : l ∈ c then some (l.restrict keep_vars (h_mem l h)) else none
 
-  have : ∀ l₁ l₂, ∀ r ∈ f l₁, r ∈ f l₂ → l₁ = l₂ := by
-    intros l₁ l₂ b h₁ h₂
-    unfold f at h₁ h₂
-    simp_all only [Option.mem_def, Option.dite_none_right_eq_some, Option.some.injEq]
-    obtain ⟨_, h⟩ := h₁
-    obtain ⟨h_l₂_c, h_l₂_b⟩ := h₂
-    rw [←h_l₂_b] at h
-    have h_l₁_vars : l₁.variable ∈ keep_vars := by simp_all
-    have h_l₂_vars : l₂.variable ∈ keep_vars := by simp_all
-    unfold Literal.restrict at h
-    aesop
-
-  c.filterMap f this
+  c.filterMap f <| by aesop
 
 /-- Splits clause `c` into two clauses `c_in` and `c_out` based on inclusion of literals to
 `sub_vars`. It is guaranteed that `c = c_in ∨ c_out`. -/
+@[simp]
 def Clause.split {vars} (c : Clause vars) (split_vars : Variables) :
     (Clause (vars ∩ split_vars)) × (Clause (vars \ split_vars)) :=
   let c_in := c.filter (fun l => l.variable ∈ split_vars)
   let c_out := c.filter (fun l => l.variable ∉ split_vars)
 
-  have h_in : ∀ l, l ∈ c_in → l.variable ∈ (vars ∩ split_vars) := by
-    intro l h_c_in
-    unfold c_in at h_c_in
-    simp only [Finset.mem_filter] at h_c_in
-    rw [@Finset.mem_inter]
-    constructor
-    · simp
-    · apply h_c_in.2
+  -- h_out has to be written explicitly for some reason
+  have h_out : ∀ l, l ∈ c_out → l.variable ∈ (vars \ split_vars) := by aesop
 
-  have h_out : ∀ l, l ∈ c_out → l.variable ∈ (vars \ split_vars) := by
-    intro l h_c_out
-    unfold c_out at h_c_out
-    simp only [Finset.mem_filter] at h_c_out
-    simp only [Finset.mem_sdiff]
-    constructor
-    · simp
-    · apply h_c_out.2
-
-  let c_in' := Clause.shrink c_in (vars ∩ split_vars) h_in
+  let c_in' := Clause.shrink c_in (vars ∩ split_vars) <| by aesop
   let c_out' := Clause.shrink c_out (vars \ split_vars) h_out
 
   (c_in', c_out')
@@ -109,9 +85,7 @@ lemma Assignment.double_restrict {vars sub_vars₁ sub_vars₂} (ρ : Assignment
 @[simp]
 lemma Literal.restrict_correctness {vars sub_vars} {l : Literal vars} {ρ : Assignment vars}
     (h_subset : sub_vars ⊆ vars) (h_l : l.variable ∈ sub_vars) :
-    (l.restrict sub_vars h_l).eval (ρ.restrict sub_vars h_subset) = l.eval ρ := by
-  unfold Literal.restrict
-  aesop
+    (l.restrict sub_vars h_l).eval (ρ.restrict sub_vars h_subset) = l.eval ρ := by aesop
 
 /-- Substitutes a partial assignment to a clause. Returns none if clause is satisfied and
 the clause after substitution otherwise. -/
@@ -128,17 +102,14 @@ def Clause.substitute {vars sub_vars} (c : Clause vars) (ρ : Assignment sub_var
 lemma Clause.substitute_maintains_subset {vars sub_vars} {c₁ c₂ : Clause vars}
     {h_subset : c₁ ⊆ c₂} (ρ : Assignment sub_vars) (h₁) (h₂) :
     ((c₁.substitute ρ).get h₁ ⊆ (c₂.substitute ρ).get h₂) := by
-  unfold Clause.substitute Clause.split Clause.shrink
-  simp only [Finset.mem_filter, Option.get_ite']
-  intro l h
-  aesop
+  intro _
+  aesop (add safe unfold Clause.substitute)
 
 lemma Clause.substitute_eq_none_iff_eval_subclause_true {vars sub_vars} (c : Clause vars)
     (ρ : Assignment sub_vars) :
     c.substitute ρ = none ↔
     (c.split sub_vars).1.eval (ρ.restrict (vars ∩ sub_vars) Finset.inter_subset_right) := by
-  unfold Clause.substitute
-  aesop
+  aesop (add safe unfold Clause.substitute)
 
 lemma Clause.substitute_isSome_iff_eval_subclause_false {vars sub_vars} (c : Clause vars)
     (ρ : Assignment sub_vars) :
@@ -226,6 +197,7 @@ lemma Clause.split_correctness {vars} (c : Clause vars) (sub_vars : Variables)
       aesop
 
 /-- Partial substitution to a formula. -/
+@[aesop safe [unfold]]
 def CNFFormula.substitute {vars sub_vars} (φ : CNFFormula vars)
     (ρ : Assignment sub_vars) : CNFFormula (vars \ sub_vars) :=
   let f := fun c : Clause vars => c.substitute ρ
@@ -236,9 +208,7 @@ def CNFFormula.substitute {vars sub_vars} (φ : CNFFormula vars)
 
 lemma CNFFormula.substitute_preimage {vars sub_vars} {φ : CNFFormula vars}
     {ρ : Assignment sub_vars} {c} (h_c : c ∈ φ.substitute ρ) :
-    ∃ c' ∈ φ, c'.substitute ρ = some c := by
-  unfold CNFFormula.substitute at h_c
-  simp_all
+    ∃ c' ∈ φ, c'.substitute ρ = some c := by aesop
 
 @[aesop unsafe]
 lemma Clause.substitute_isSome_subset {vars sub_vars} {c₁ c₂ : Clause vars}
@@ -248,11 +218,7 @@ lemma Clause.substitute_isSome_subset {vars sub_vars} {c₁ c₂ : Clause vars}
   simp_all only [Bool.not_eq_true]
   rw [Clause.eval_eq_false_iff_all_falsified_literals] at *
   suffices (c₁.split sub_vars).1 ⊆ (c₂.split sub_vars).1 by aesop
-  unfold Clause.split
-  simp only
-  unfold Clause.shrink
-  simp only
-  intro l h
+  intro l
   aesop
 
 @[aesop unsafe]
@@ -275,90 +241,51 @@ lemma Clause.resolve_substitute_isNone {vars sub_vars} {c₁ c₂ : Clause vars}
 
   if h : l₁.variable = x ∧ l₂.variable = x then
     have h_eq : l₁ = l₂ := by
-      suffices l₁.polarity = l₂.polarity by
+      suffices h_pos : l₁.polarity = l₂.polarity by
         have : l₁.variable = l₂.variable := by aesop
-        match l₁, l₂ with
-        | .pos _ _, .pos _ _ => aesop
-        | .neg _ _, .neg _ _ => aesop
-        | .neg _ _, .pos _ _ => contradiction
-        | .pos _ _, .neg _ _ => contradiction
-      let ρ' := ρ.restrict (vars ∩ sub_vars) (by aesop)
-      have : l₁.eval ρ' = l₂.eval ρ' := by aesop
-      unfold Literal.eval at this
-      match l₁, l₂ with
-      | .pos _ _, .pos _ _ => aesop
-      | .neg _ _, .neg _ _ => aesop
-      | .neg v₁ _, .pos v₂ _ =>
-        have h_eq : v₁ = v₂ := by aesop
         aesop
-      | .pos v₁ _, .neg v₂ _ =>
-        have h_eq : v₁ = v₂ := by aesop
-        aesop
+      aesop (add safe unfold Literal.eval)
+
     have : l₂ ∈ ((c₁.resolve c₂ x h_x).split sub_vars).1 := by
-      subst h_eq
-      unfold Clause.resolve
-      unfold Clause.split Clause.shrink at *
-      simp_all only
-      rw [Finset.mem_filterMap] at h_l₁_in_c₁ h_l₂_in_c₂
+      simp_all only [Clause.resolve, Clause.split, Clause.shrink, Finset.mem_filterMap]
+      simp_all only [Finset.mem_filter, Option.dite_none_right_eq_some, Option.some.injEq,
+        and_exists_self, and_self, Finset.mem_union, Finset.mem_erase, ne_eq]
+
       obtain ⟨l₁', ⟨h_l₁'_mem, h₁⟩⟩ := h_l₁_in_c₁
       obtain ⟨l₂', ⟨h_l₂'_mem, h₂⟩⟩ := h_l₂_in_c₂
-      rw [Finset.mem_filterMap]
+
+      subst h
+
       if h_pos : l₁.polarity then
         use l₂'
-        simp_all only [and_self, Finset.mem_filter, Option.dite_none_right_eq_some,
-          Option.some.injEq, and_exists_self, Finset.mem_union, Finset.mem_erase, ne_eq]
-        subst h
-        simp_all only [exists_true_left, and_true, exists_prop]
+        simp_all only [and_true, exists_prop]
         subst h₂
         right
         suffices l₂'.polarity by
-          unfold Literal.polarity at this
-          unfold Variable.toNegLiteral
-          grind
-        unfold Literal.polarity at *
-        unfold Literal.restrict at h_pos
+          grind [Variable.toNegLiteral]
         aesop
       else
         use l₁'
-        simp_all only [and_self, Finset.mem_filter, Option.dite_none_right_eq_some,
-          Option.some.injEq, and_exists_self, Finset.mem_union, Finset.mem_erase, ne_eq]
-        subst h
-        simp_all only [exists_true_left, and_true, exists_prop]
+        simp_all only [and_true, exists_prop]
         subst h₁
         left
         suffices ¬l₁'.polarity by
-          unfold Literal.polarity at this
-          unfold Variable.toLiteral
-          grind
-        unfold Literal.polarity at *
-        unfold Literal.restrict at h_pos
+          grind [Variable.toLiteral]
         aesop
     use l₂
   else if h_var₁ : l₁.variable ≠ x then
     have : l₁ ∈ ((c₁.resolve c₂ x h_x).split sub_vars).1 := by
-      unfold Clause.split Clause.shrink at *
-      simp_all only
-      rw [Finset.mem_filterMap] at h_l₁_in_c₁
+      simp_all only [Clause.split, Clause.shrink, Finset.mem_filterMap]
       obtain ⟨l₁', ⟨h_l₁'_mem, h₁⟩⟩ := h_l₁_in_c₁
-      rw [Finset.mem_filterMap]
       use l₁'
-      simp_all only [Finset.mem_filter, Finset.mem_filterMap, Option.dite_none_right_eq_some,
-        Option.some.injEq, and_exists_self, false_and, not_false_eq_true, ne_eq, and_self,
-        ↓reduceDIte, and_true, dite_eq_ite, ite_eq_left_iff, reduceCtorEq, imp_false,
-        Decidable.not_not]
+      simp_all only [Finset.mem_filter, Option.dite_none_right_eq_some, Option.some.injEq,
+        and_exists_self, false_and, not_false_eq_true, ne_eq, and_self, ↓reduceDIte, and_true,
+        dite_eq_ite, ite_eq_left_iff, reduceCtorEq, imp_false, Decidable.not_not]
       unfold Clause.resolve
       simp only [Finset.mem_union, Finset.mem_erase, ne_eq]
       left
-      constructor
-      · unfold Variable.toLiteral
-        unfold Literal.variable at h_var₁
-        simp only at h_var₁
-        cases l₁'
-        case pos v h_v_mem_vars =>
-          aesop
-        case neg v h_v_mem_vars =>
-          aesop
-      · aesop
+      have : l₁.variable = l₁'.variable := by aesop
+      grind [Variable.toLiteral]
     use l₁
   else
     have h_var₂ : l₂.variable ≠ x := by aesop
@@ -375,16 +302,8 @@ lemma Clause.resolve_substitute_isNone {vars sub_vars} {c₁ c₂ : Clause vars}
       unfold Clause.resolve
       simp only [Finset.mem_union, Finset.mem_erase, ne_eq]
       right
-      constructor
-      · unfold Variable.toNegLiteral
-        unfold Literal.variable at h_var₂
-        simp only at h_var₂
-        cases l₂'
-        case pos v h_v_mem_vars =>
-          aesop
-        case neg v h_v_mem_vars =>
-          aesop
-      · aesop
+      have : l₂.variable = l₂'.variable := by aesop
+      grind [Variable.toNegLiteral]
     use l₂
 
 @[simp]
@@ -418,7 +337,7 @@ lemma Clause.substitute_variables {vars sub_vars} {c : Clause vars} (ρ : Assign
 
 /-- Cardinaly of the image of filterMap cannot be larger than preimage.
 This statement does not follow from the lemmas in the standard library, so we prove it here. -/
-@[aesop safe]
+@[aesop safe, grind .]
 lemma filterMap_card {α β} [DecidableEq α] [DecidableEq β] (s : Finset α) {f : α → Option β} {h} :
     Finset.card (s.filterMap f h) ≤ Finset.card s := by
   induction s using Finset.induction_on
@@ -480,10 +399,7 @@ lemma Clause.substitute_resolve_eq_resolve_substitute {vars sub_vars} {c₁ c₂
         swap
         · assumption
         left
-        constructor
-        · unfold Literal.restrict Variable.toLiteral Variable.toNegLiteral at *
-          aesop
-        · assumption
+        grind
     case h.mp.inr h =>
       obtain ⟨h_neq, ⟨l', ⟨⟨h_l'_in, h_l'_var⟩, h_restrict⟩⟩⟩ := h
       use l'
@@ -492,10 +408,7 @@ lemma Clause.substitute_resolve_eq_resolve_substitute {vars sub_vars} {c₁ c₂
         swap
         · assumption
         right
-        constructor
-        · unfold Literal.restrict Variable.toLiteral Variable.toNegLiteral at *
-          aesop
-        · assumption
+        grind
   · intro h_l
     simp_all only [Finset.mem_filterMap, Finset.mem_filter, Finset.mem_union, Finset.mem_erase,
       ne_eq, Option.dite_none_right_eq_some, Option.some.injEq, and_exists_self]
@@ -505,16 +418,27 @@ lemma Clause.substitute_resolve_eq_resolve_substitute {vars sub_vars} {c₁ c₂
       left
       obtain ⟨h_l'_neq, h_l'_in⟩ := h
       constructor
-      · unfold Literal.restrict Variable.toLiteral Variable.toNegLiteral at *
-        aesop
+      · by_contra!
+        rw [←Literal.eq_iff_variable_and_polarity_eq] at h_l'_neq
+        simp_all only [Variable.toLiteral]
+        have : l.polarity := by grind
+        have : l.variable = v := by grind
+        have : (l'.variable = v ∧ l'.polarity) := by grind
+        contradiction
+
       use l'
       use by aesop
     case h.mpr.inr h =>
       right
       obtain ⟨h_l'_neq, h_l'_in⟩ := h
       constructor
-      · unfold Literal.restrict Variable.toLiteral Variable.toNegLiteral at *
-        aesop
+      · by_contra!
+        rw [←Literal.eq_iff_variable_and_polarity_eq] at h_l'_neq
+        simp_all only [Variable.toNegLiteral]
+        have : ¬l.polarity := by grind
+        have : l.variable = v := by grind
+        have : (l'.variable = v ∧ ¬l'.polarity) := by grind
+        grind
       use l'
       use by aesop
 

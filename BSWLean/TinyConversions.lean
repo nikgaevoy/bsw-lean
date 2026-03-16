@@ -132,7 +132,7 @@ lemma subset_combine {vars₁ vars₂} (c₁ c₂ : Clause vars₁) (c' : Clause
     have h_l_in_c_convert : l.convert (Finset.disjUnion vars₁ vars₂ h_disj) (by aesop) ∈
         c₂.convert (Finset.disjUnion vars₁ vars₂ h_disj) (by aesop) := by
       apply this
-      aesop
+      aesop (add safe unfold Clause.convert)
 
     simp_all
 
@@ -151,20 +151,19 @@ lemma substitute_trivial_property_human_form {vars} {c : Clause vars} {l : Liter
     rw [Clause.substitute_isSome_iff_eval_subclause_false] at h
     simp at h
     rw [Clause.eval_eq_false_iff_all_falsified_literals] at h
-    unfold Clause.split Clause.shrink at h
-    simp only [Finset.mem_singleton, Finset.mem_filter, Finset.mem_filterMap,
+    simp only [Finset.mem_filter, Finset.mem_filterMap,
       Option.dite_none_right_eq_some, Option.some.injEq, and_exists_self, forall_exists_index,
       forall_and_index] at h
 
     let t' := t.restrict (vars ∩ {l.variable}) (by aesop)
     have := h t' t h_t (by aesop) rfl
-    rw [Literal.eq_iff_polarity_and_variable_eq]
-    simp [h_var]
     have h_t' : t'.polarity = t.polarity := by aesop
 
     by_cases l.polarity
     all_goals by_cases t.polarity
-    all_goals unfold Literal.eval Literal.polarity Assignment.restrict at *; grind
+    all_goals simp_all [Literal.eval, Literal.variable, Literal.restrict]
+    all_goals have : l.polarity = t.polarity := by grind;
+    all_goals grind
   case neg =>
     right
     unfold Clause.substitute Clause.split Clause.shrink Clause.convert

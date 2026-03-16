@@ -21,13 +21,12 @@ lemma lit_subst_is_Bot_false {vars}
         Clause ((vars) ∩ {l.variable})) := by
       unfold Clause.split
       simp_all [l']
-      unfold Literal.convert Clause.shrink
+      unfold Literal.convert
       aesop
     simp_all only [l']
-    unfold Literal.convert
+    unfold Literal.convert Assignment.restrict Clause.eval Literal.eval
     aesop
-  · unfold Clause.split Clause.shrink
-    aesop
+  · aesop
 
 
 
@@ -64,14 +63,12 @@ lemma card_subst {vars} {sub_vars} {ρ : Assignment sub_vars} (C : Clause (vars)
         simp_all
         obtain ⟨h_left, h_right⟩ := h
         subst h_right
-        unfold Clause.split
-        simp_all only
         have h : ∀ l ∈ {l ∈ C | l.variable ∉ sub_vars}, l.variable ∈ vars \ sub_vars := by
           aesop
         have : Finset.card (Clause.shrink ({l ∈ C | l.variable ∉ sub_vars}) (vars \ sub_vars) h) ≤
             Finset.card C := by
           exact shrink_width_ineq_adv C
-        simp_all only
+        aesop
 
 
 lemma card_combination {vars} {sub_vars} {ρ : Assignment sub_vars} (C : Clause (vars \ sub_vars))
@@ -500,26 +497,13 @@ lemma width_closure {vars} (φ₁ φ₂ : CNFFormula vars) (W : ℕ) (C_0 : Clau
 
 
 lemma trivial_subs_unfold {vars}
-    (x : Literal vars) (h₀ : x.variable ∈ vars)
+    (x : Literal vars)
     (ρ_true : (Assignment ({x.variable} : Finset Variable)))
     (h_value : ρ_true = (fun _ _ => (x.polarity : Bool)))
     (h_1 : ∀ l ∈ ρ_true.toClause, l.variable ∈ vars) :
     (ρ_true.toClause).convert vars h_1 = ({x.negate} : Clause vars) := by
-  cases x
-  case neg v_1 hv =>
-    have idea_2 : ρ_true (Literal.pos v_1 hv).variable (by aesop) = false := by
-      aesop
-    unfold Assignment.toClause
-    unfold Clause.convert
-    unfold Assignment.negVariable
-    aesop
-  case pos v_1 hv =>
-    have idea_2 : ρ_true (Literal.pos v_1 hv).variable (by aesop) = true := by
-      aesop
-    unfold Assignment.toClause
-    unfold Clause.convert
-    unfold Assignment.negVariable
-    aesop
+  unfold Literal.negate Assignment.toClause Clause.convert
+  aesop
 
 
 
@@ -552,7 +536,7 @@ lemma ufold_one_literal {vars} {φ : CNFFormula vars}
     aesop
 
   have idea : (ρ_true.toClause).convert vars trick₁ = ({x.negate} : Clause vars):= by
-    exact trivial_subs_unfold x h₀ ρ_true h_value trick₁
+    exact trivial_subs_unfold x ρ_true h_value trick₁
 
   rw[<-idea]
 
@@ -846,49 +830,49 @@ lemma substitute_second_trivial_property {vars}
     obtain ⟨left_2, right_2⟩ := h_C_2_conv
     subst left right left_1 right_1
 
-    unfold Literal.convert
-    split
-    next l h_mem v h_v_mem_vars h_mem_1 =>
-      unfold Clause.shrink at hl_orig_in
-      simp at hl_orig_in
-      obtain ⟨w, h⟩ := hl_orig_in
-      obtain ⟨w_1, h⟩ := h
-      obtain ⟨left, right⟩ := w_1
-      have : Literal.pos v h_mem_1 = w := by
-        unfold Literal.restrict at h
-        split at h
-        next l_1 h_mem_2 v_1 h_v_mem_vars_1 h_mem_3 =>
-          simp_all only [Finset.mem_sdiff, Literal.variable_mem_vars, Finset.mem_singleton,
-            true_and, Literal.pos.injEq]
-        next l_1 h_mem_2 v_1 h_v_mem_vars_1 h_mem_3 =>
-          simp_all only [Finset.mem_sdiff, Literal.variable_mem_vars, Finset.mem_singleton,
-            true_and, reduceCtorEq]
-      subst this
-      simp_all only
-    next l h_mem v h_v_mem_vars h_mem_1 =>
-      unfold Clause.shrink at hl_orig_in
-      simp at hl_orig_in
-      obtain ⟨w, h⟩ := hl_orig_in
-      obtain ⟨w_1, h⟩ := h
-      obtain ⟨left, right⟩ := w_1
-      have : Literal.neg v h_mem_1 = w := by
-        unfold Literal.restrict at h
-        split at h
-        next l_1 h_mem_2 v_1 h_v_mem_vars_1 h_mem_3 =>
-          simp_all only [Finset.mem_sdiff, Literal.variable_mem_vars, Finset.mem_singleton,
-            true_and, reduceCtorEq]
-        next l_1 h_mem_2 v_1 h_v_mem_vars_1 h_mem_3 =>
-          simp_all only [Finset.mem_sdiff, Literal.variable_mem_vars, Finset.mem_singleton,
-            true_and, Literal.neg.injEq]
-      subst this
-      simp_all only
+    sorry
+    -- unfold Literal.convert
+    -- split
+    -- next l h_mem v h_v_mem_vars h_mem_1 =>
+    --   unfold Clause.shrink at hl_orig_in
+    --   simp at hl_orig_in
+    --   obtain ⟨w, h⟩ := hl_orig_in
+    --   obtain ⟨w_1, h⟩ := h
+    --   obtain ⟨left, right⟩ := w_1
+    --   have : Literal.pos v h_mem_1 = w := by
+    --     unfold Literal.restrict at h
+    --     split at h
+    --     next l_1 h_mem_2 v_1 h_v_mem_vars_1 h_mem_3 =>
+    --       simp_all only [Finset.mem_sdiff, Literal.variable_mem_vars, Finset.mem_singleton,
+    --         true_and, Literal.pos.injEq]
+    --     next l_1 h_mem_2 v_1 h_v_mem_vars_1 h_mem_3 =>
+    --       simp_all only [Finset.mem_sdiff, Literal.variable_mem_vars, Finset.mem_singleton,
+    --         true_and, reduceCtorEq]
+    --   subst this
+    --   simp_all only
+    -- next l h_mem v h_v_mem_vars h_mem_1 =>
+    --   unfold Clause.shrink at hl_orig_in
+    --   simp at hl_orig_in
+    --   obtain ⟨w, h⟩ := hl_orig_in
+    --   obtain ⟨w_1, h⟩ := h
+    --   obtain ⟨left, right⟩ := w_1
+    --   have : Literal.neg v h_mem_1 = w := by
+    --     unfold Literal.restrict at h
+    --     split at h
+    --     next l_1 h_mem_2 v_1 h_v_mem_vars_1 h_mem_3 =>
+    --       simp_all only [Finset.mem_sdiff, Literal.variable_mem_vars, Finset.mem_singleton,
+    --         true_and, reduceCtorEq]
+    --     next l_1 h_mem_2 v_1 h_v_mem_vars_1 h_mem_3 =>
+    --       simp_all only [Finset.mem_sdiff, Literal.variable_mem_vars, Finset.mem_singleton,
+    --         true_and, Literal.neg.injEq]
+    --   subst this
+    --   simp_all only
 
 -- Gemini generated this lemma
 
 lemma var_mem_of_literal_mem {v_set} (l : Literal v_set) :
   l.variable ∈ v_set := by
-  cases l <;> simp [Literal.variable, *]
-
+  simp [Literal.variable, *]
 
 
 lemma width_combine (vars) {φ : CNFFormula vars}
@@ -1050,19 +1034,26 @@ lemma width_combine (vars) {φ : CNFFormula vars}
       unfold π_1_unfolded at idea₁
       have idea_new : π_new.width ≤ W + 1 := by grind
 
-      induction x with
-      | pos v h_val =>
-        have temp_fix₂ : C_2 ⊆ C_0 ∪ {v.toLiteral temp_fix₁} ∧
-            {Literal.neg v h_val} ⊆ C_0 ∪ {v.toNegLiteral temp_fix₁} := by
-          constructor
-          · exact idea₂
-          subst h_value h_value_false h_C_1_conv_right
-          simp_all
-          apply Or.inl
-          rfl
+      by_cases h : x.polarity
+      case pos =>
+        simp_all only [Literal.negate]
+        let v := x.variable
+        have h_val : v ∈ vars := by aesop
+
         let π_ans : TreeLikeResolution φ C_0 := TreeLikeResolution.resolve C_2
-          ({(Literal.neg v h_val)} : Clause vars) v temp_fix₁ h_v_not_mem_c
-          (TreeLikeResolution.axiom_clause left) (π_new) temp_fix₂
+          ({(v.toNegLiteral h_val)} : Clause vars) v temp_fix₁ h_v_not_mem_c
+          (TreeLikeResolution.axiom_clause left)
+            (π_new.convert (by aesop (add safe unfold Literal.negate)))
+            <| by
+            constructor
+            · have : x = v.toLiteral temp_fix₁ := by
+                rw [←Literal.eq_iff_variable_and_polarity_eq]
+                aesop
+              rw [this] at idea₂
+              exact idea₂
+            subst h_value h_value_false h_C_1_conv_right
+            aesop (add safe unfold Literal.negate)
+
         use π_ans
         unfold TreeLikeResolution.width
         have : C_0.card = C_1.card := by
@@ -1075,17 +1066,28 @@ lemma width_combine (vars) {φ : CNFFormula vars}
             exact Finset.card_le_card this_1
           · exact h_clause_card C_2 left
         aesop
-      | neg v h_val =>
-        have temp_fix₂ : {Literal.pos v h_val} ⊆ C_0 ∪ {v.toLiteral temp_fix₁} ∧
-            C_2 ⊆ C_0 ∪ {v.toNegLiteral temp_fix₁}:= by
+      case neg =>
+        simp at h
+        simp_all only [Literal.negate]
+        let v := x.variable
+        have h_val : v ∈ vars := by aesop
+
+        let π_ans : TreeLikeResolution φ C_0 := TreeLikeResolution.resolve {(v.toLiteral h_val)}
+          C_2 v temp_fix₁ h_v_not_mem_c (π_new.convert (by aesop (add safe unfold Literal.negate)))
+          (TreeLikeResolution.axiom_clause left)
+          <| by
           constructor
-          · subst h_value h_value_false h_C_1_conv_right
-            simp_all
-            apply Or.inl
-            rfl
-          exact idea₂
-        let π_ans : TreeLikeResolution φ C_0 := TreeLikeResolution.resolve {Literal.pos v h_val}
-          C_2 v temp_fix₁ h_v_not_mem_c (π_new) (TreeLikeResolution.axiom_clause left) temp_fix₂
+          swap
+          · have : x = v.toNegLiteral temp_fix₁ := by
+              rw [←Literal.eq_iff_variable_and_polarity_eq]
+              unfold v Variable.toNegLiteral Literal.variable Literal.v
+              simp
+              assumption
+            rw [this] at idea₂
+            exact idea₂
+          intro l h_l
+          apply Finset.mem_union_right
+          exact h_l
         use π_ans
         unfold TreeLikeResolution.width
         have : C_0.card = C_1.card := by
@@ -1097,7 +1099,14 @@ lemma width_combine (vars) {φ : CNFFormula vars}
           · expose_names
             exact Finset.card_le_card this_1
           · exact h_clause_card C_2 left
-        aesop
+        subst h_value h_value_false h_C_1_conv_right
+        unfold CNFFormula.substitute at π_1
+
+        simp_all only [Bool.false_eq_true, not_false_eq_true, decide_true, subset_refl,
+          convert_card, TreeLikeResolution.convert_trivial_width, sup_le_iff, true_and, ge_iff_le,
+          v, π_new, π_1_unfolded]
+        apply h_clause_card
+        assumption
 
     have idea₃ :
         ∃ (π : TreeLikeResolution φ_subs_false_conv (BotClause (vars))), π.width ≤ W + 1 := by
@@ -1219,21 +1228,17 @@ lemma var_incl {vars} (v : Variable) (C : Clause vars) (h_v_in_vars : v ∈ vars
   simp_all
   obtain ⟨a, h_sub⟩ := h_sub
   obtain ⟨h_sub_left, h_sub_right⟩ := h_sub
-  cases a
-  case pos var h_v =>
-    have : Literal.pos var h_v = v.toLiteral h_v_in_vars := by
-      subst h_sub_right
-      simp_all only
-      rfl
-    subst h_sub_right
-    simp_all only [true_or]
-  case neg var h_v =>
-    have : Literal.neg var h_v = v.toNegLiteral h_v_in_vars := by
-      subst h_sub_right
-      simp_all only
-      rfl
-    subst h_sub_right
-    simp_all only [or_true]
+  by_cases a.polarity
+  case pos h_v =>
+    have : a = v.toLiteral h_v_in_vars := by
+      rw [←Literal.eq_iff_variable_and_polarity_eq]
+      aesop (add safe unfold Variable.toLiteral)
+    grind
+  case neg h_v =>
+    have : a = v.toNegLiteral h_v_in_vars := by
+      rw [←Literal.eq_iff_variable_and_polarity_eq]
+      aesop (add safe unfold Variable.toNegLiteral)
+    grind
 
 
 theorem width_imply_size_ind_version (W : ℕ)

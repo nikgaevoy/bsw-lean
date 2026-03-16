@@ -38,15 +38,15 @@ deriving instance DecidableEq
 for SuperClause
 
 /-- `Literal ↦ SuperLiteral` -/
+@[simp]
 def Literal.toSuperLiteral {vars} (l : Literal vars) : SuperLiteral :=
   SuperLiteral.mk vars l
 
 /-- Conversion function for regular literals. -/
+@[aesop safe [unfold]]
 def Literal.convert {vars₁ : Variables} (l : Literal vars₁) (vars₂ : Variables)
     (h_mem : l.variable ∈ vars₂) : Literal vars₂ :=
-  match l with
-  | .pos v _ => Literal.pos v h_mem
-  | .neg v _ => Literal.neg v h_mem
+  Literal.mk ⟨l.variable, h_mem⟩ l.polarity
 
 /-- `SuperLiteral ↦ Literal` -/
 def SuperLiteral.toLiteral (sl : SuperLiteral) (vars : Variables) : Option (Literal vars) :=
@@ -88,10 +88,12 @@ lemma SuperLiteral.toLiteral_eq_none_iff_wrong_vars {vars} (sl : SuperLiteral) :
 
 /-- The equivalence class for literals. Cannot be plugged in to `Equivalence` since it is defined
 for objects of two different types. -/
+@[aesop safe [constructors]]
 class LiteralEquiv {vars₁ vars₂} (l₁ : Literal vars₁) (l₂ : Literal vars₂) : Prop where
   h_equiv : l₁.variable = l₂.variable ∧ l₁.polarity = l₂.polarity
 
 /-- A class to prove `Equivalence`. -/
+@[aesop safe [constructors]]
 class SuperLiteralEquiv (sl₁ sl₂ : SuperLiteral) : Prop where
   h_equiv : LiteralEquiv sl₁.lit sl₂.lit
 
@@ -102,8 +104,6 @@ lemma Literal.equiv_equiv {vars} (c₁ c₂ : Literal vars) : LiteralEquiv c₁ 
   case mp =>
     intro h
     have h_equiv := h.h_equiv
-
-    unfold Literal.variable Literal.polarity at h_equiv
 
     aesop
 
@@ -127,22 +127,15 @@ lemma SuperLiteral.equiv_Equivalence : Equivalence SuperLiteralEquiv := by
   constructor
   case refl =>
     intro x
-    constructor
-    constructor
-    unfold Literal.variable Literal.polarity
-    simp only [decide_true, decide_false, and_self]
+    aesop
   case symm =>
     intro x y h_eq
     have := h_eq.h_equiv.h_equiv
-    constructor
-    constructor
     aesop
   case trans =>
     intro x y z hxy hyz
     replace hxy := hxy.h_equiv.h_equiv
     replace hyz := hyz.h_equiv.h_equiv
-    constructor
-    constructor
     aesop
 
 
@@ -191,16 +184,13 @@ lemma Literal.eqiuv_SuperLiteral {vars} (l : Literal vars) (sl : SuperLiteral) :
     aesop
 
 /-- Conversion function for super-literals. -/
+@[simp]
 def SuperLiteral.convert (sl : SuperLiteral) (vars : Variables)
     (h_mem : sl.lit.variable ∈ vars) : SuperLiteral :=
   SuperLiteral.mk vars (sl.lit.convert vars h_mem)
 
 lemma SuperLiteral.convert_equivalence (sl : SuperLiteral) (vars : Variables) {h} :
-    SuperLiteralEquiv sl (sl.convert vars h) := by
-  unfold SuperLiteral.convert
-  constructor
-  constructor
-  aesop
+    SuperLiteralEquiv sl (sl.convert vars h) := by aesop
 
 @[simp]
 lemma SuperLiteral.vars_isSome (sl : SuperLiteral) : (sl.toLiteral sl.vars).isSome := by
@@ -683,7 +673,7 @@ lemma Clause.convert_keeps_subset {vars₁ : Variables} {c₁ c₂ : Clause vars
     simp at h_l
     obtain ⟨l', ⟨p, h_l'⟩⟩ := h_l
     rw [←h_l']
-    aesop
+    aesop (add safe unfold Clause.convert)
 
 lemma Clause.equiv_keeps_subset {vars₁ vars₂ : Variables}
     (c₁ c₂ : Clause vars₁) {c₁' c₂' : Clause vars₂}
@@ -774,17 +764,16 @@ lemma Clause.convert_keeps_variables {vars₁} (c : Clause vars₁) (vars₂ : V
   unfold Clause.variables Clause.convert
   aesop
 
-lemma Clause.combine_not_variables {vars₁} {vars₂} (c₁ : Clause vars₁) (c₂ : Clause vars₂)
-    (h : Disjoint vars₁ vars₂) (x : Variable) (h₁ : x ∉ c₁.variables) (h₂ : x ∉ c₂.variables) :
-    x ∉ (c₁.combine c₂ h).variables := by
-  unfold Clause.combine
-  aesop
-
 @[simp]
 lemma Clause.combine_variables {vars₁} {vars₂} (c₁ : Clause vars₁) (c₂ : Clause vars₂)
     (h : Disjoint vars₁ vars₂) : (c₁.combine c₂ h).variables = c₁.variables ∪ c₂.variables := by
   unfold combine
   simp
+
+lemma Clause.combine_not_variables {vars₁} {vars₂} (c₁ : Clause vars₁) (c₂ : Clause vars₂)
+    (h : Disjoint vars₁ vars₂) (x : Variable) (h₁ : x ∉ c₁.variables) (h₂ : x ∉ c₂.variables) :
+    x ∉ (c₁.combine c₂ h).variables := by
+  grind [Clause.combine_variables]
 
 @[simp]
 lemma Clause.convert_empty {vars₁ vars₂} (c : Clause vars₁) {h} (_ : c = ∅) :
@@ -881,7 +870,7 @@ lemma Clause.substitute_combine {vars} {sub_vars} (c : Clause vars) (ρ : Assign
         have := h l' (by unfold Clause.split Clause.shrink; aesop)
         unfold Literal.eval Assignment.restrict at this
         unfold l' Literal.restrict at this
-        aesop
+        aesop (add unsafe Bool.eq_not.mpr)
 
   case neg =>
     suffices h_mid : ∃ l_sub ∈ ((c.substitute ρ).get h), LiteralEquiv l l_sub by
