@@ -88,6 +88,18 @@ lemma Literal.eq_iff_variable_and_polarity_eq {vars} {l₁ l₂ : Literal vars} 
   have : l₁' = l₂' := by unfold l₁' l₂'; grind
   grind
 
+@[simp, grind =]
+lemma Literal.reduce_toLiteral {vars} {l : Literal vars} (h : l.polarity) :
+    (l.variable.toLiteral (by aesop)) = l := by
+  rw [←Literal.eq_iff_variable_and_polarity_eq]
+  aesop
+
+@[simp, grind =]
+lemma Literal.reduce_toNegLiteral {vars} {l : Literal vars} (h : ¬l.polarity) :
+    (l.variable.toNegLiteral (by aesop)) = l := by
+  rw [←Literal.eq_iff_variable_and_polarity_eq]
+  aesop
+
 /-- Clauses are defined as finite set of literals, so we lose the order of them. -/
 abbrev Clause (vars : Variables) := Finset (Literal vars)
 

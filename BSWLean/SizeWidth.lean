@@ -1046,9 +1046,7 @@ lemma width_combine (vars) {φ : CNFFormula vars}
             (π_new.convert (by aesop (add safe unfold Literal.negate)))
             <| by
             constructor
-            · have : x = v.toLiteral temp_fix₁ := by
-                rw [←Literal.eq_iff_variable_and_polarity_eq]
-                aesop
+            · have : x = v.toLiteral temp_fix₁ := by aesop
               rw [this] at idea₂
               exact idea₂
             subst h_value h_value_false h_C_1_conv_right
