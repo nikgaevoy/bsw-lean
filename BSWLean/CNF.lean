@@ -19,8 +19,11 @@ proof systems, but leads to some problems in other places. For the structures of
 see SuperLiterals, SuperClauses, etc.
 -/
 
-/-- Definition of a variable. Strings could be replaced with any type -/
-abbrev Variable := String
+/-- Definition of a variable. Strings could be replaced with any type. -/
+structure Variable where
+  /-- Not actually used in the code. -/
+  name : String
+deriving DecidableEq
 
 /-- Set of variables. Self explanatory. -/
 abbrev Variables := Finset Variable
@@ -41,16 +44,13 @@ structure Literal (vars : Variables) where
   polarity : Bool
 deriving DecidableEq
 
-deriving instance DecidableEq
-for Variable
-
 /-- Constructor for a positive literal. -/
 def Variable.toLiteral {vars} (v : Variable) (h_v_mem_vars : v ∈ vars) : Literal vars :=
-  Literal.mk ⟨v, h_v_mem_vars⟩ True
+  Literal.mk ⟨v, h_v_mem_vars⟩ true
 
 /-- Constructor for a negative literal. -/
 def Variable.toNegLiteral {vars} (v : Variable) (h_v_mem_vars : v ∈ vars) : Literal vars :=
-  Literal.mk ⟨v, h_v_mem_vars⟩ False
+  Literal.mk ⟨v, h_v_mem_vars⟩ false
 
 /-- Constructor for a positive literal. -/
 @[simp]
@@ -62,9 +62,8 @@ def Subtype.toLiteral {vars} (v : { v : Variable // v ∈ vars }) : Literal vars
 def Subtype.toNegLiteral {vars} (v : { v : Variable // v ∈ vars }) : Literal vars :=
   (↑v : Variable).toNegLiteral <| by aesop
 
-/-- Reverse conversion. -/
-def Literal.variable {vars} : Literal vars → Variable :=
-  fun l => l.v
+/-- Projection on a variable. -/
+def Literal.variable {vars} (l : Literal vars) : Variable := l.v
 
 @[aesop safe, grind .]
 lemma Literal.variable_mem_vars {vars} (l : Literal vars) : l.variable ∈ vars := by
@@ -73,32 +72,37 @@ lemma Literal.variable_mem_vars {vars} (l : Literal vars) : l.variable ∈ vars 
 @[aesop safe, grind =]
 lemma Literal.variable_eq {vars} (l : Literal vars) : l.variable = l.v := by aesop
 
-@[simp, grind =]
-lemma Literal.eq_iff_variable_and_polarity_eq {vars} {l₁ l₂ : Literal vars} :
-    (l₁.variable = l₂.variable ∧ l₁.polarity = l₂.polarity) ↔ l₁ = l₂ := by
-  constructor
-  swap
-  · aesop
+@[simp]
+lemma Literal.variable_mk {vars} (v : {v : Variable // v ∈ vars}) (p : Bool) :
+    (Literal.mk v p).variable = v := by rfl
 
-  intro h_p
-  let l₁' := Literal.mk ⟨l₁.variable, variable_mem_vars l₁⟩ l₁.polarity
-  let l₂' := Literal.mk ⟨l₂.variable, variable_mem_vars l₂⟩ l₂.polarity
-  have h₁ : l₁ = l₁' := by trivial
-  have h₂ : l₂ = l₂' := by trivial
-  have : l₁' = l₂' := by unfold l₁' l₂'; grind
-  grind
+@[ext, aesop safe]
+lemma Literal.ext {vars} {l₁ l₂ : Literal vars}
+    (h₁ : l₁.variable = l₂.variable)
+    (h₂ : l₁.polarity = l₂.polarity) :
+    l₁ = l₂ := by
+  cases l₁; cases l₂
+  aesop
 
-@[simp, grind =]
+@[simp]
+lemma Literal.mk_eta {vars} (l : Literal vars) :
+    Literal.mk l.v l.polarity = l := by rfl
+
+@[simp]
+lemma Literal.reduce_self {vars} {l : Literal vars} (h : l.polarity) :
+    (Literal.mk ⟨l.variable, by aesop⟩ true) = l := by aesop
+
+@[simp]
+lemma Literal.reduce_neg_self {vars} {l : Literal vars} (h : ¬l.polarity) :
+    (Literal.mk ⟨l.variable, by aesop⟩ false) = l := by aesop
+
+@[simp]
 lemma Literal.reduce_toLiteral {vars} {l : Literal vars} (h : l.polarity) :
-    (l.variable.toLiteral (by aesop)) = l := by
-  rw [←Literal.eq_iff_variable_and_polarity_eq]
-  aesop
+    (l.variable.toLiteral <| by aesop) = l := by aesop
 
-@[simp, grind =]
+@[simp]
 lemma Literal.reduce_toNegLiteral {vars} {l : Literal vars} (h : ¬l.polarity) :
-    (l.variable.toNegLiteral (by aesop)) = l := by
-  rw [←Literal.eq_iff_variable_and_polarity_eq]
-  aesop
+    (l.variable.toNegLiteral <| by aesop) = l := by aesop
 
 /-- Clauses are defined as finite set of literals, so we lose the order of them. -/
 abbrev Clause (vars : Variables) := Finset (Literal vars)
@@ -143,7 +147,7 @@ lemma Literal.eval_negate_eq_not_eval {vars} (l : Literal vars) (a : Assignment 
   unfold eval negate Literal.variable;
   aesop (add unsafe Bool.eq_not.mpr)
 
-@[simp]
+@[simp, grind =]
 lemma Literal.neg_polarity {vars} (l : Literal vars) : l.negate.polarity = ¬l.polarity := by
   aesop (add safe unfold negate)
 
@@ -222,7 +226,6 @@ lemma Clause.subset_variables {vars} {c₁ c₂ : Clause vars} (h : c₁ ⊆ c�
   unfold Clause.variables
   rw [Finset.image_subset_iff]
   intro l h_l
-  have : l ∈ c₂ := by aesop
   aesop
 
 @[aesop unsafe]

@@ -162,8 +162,7 @@ lemma substitute_trivial_property_human_form {vars} {c : Clause vars} {l : Liter
     by_cases l.polarity
     all_goals by_cases t.polarity
     all_goals simp_all [Literal.eval, Literal.variable, Literal.restrict]
-    all_goals have : l.polarity = t.polarity := by grind;
-    all_goals grind
+    all_goals aesop
   case neg =>
     right
     unfold Clause.substitute Clause.split Clause.shrink Clause.convert

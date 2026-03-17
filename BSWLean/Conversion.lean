@@ -43,8 +43,8 @@ lemma Assignment.in_toClause {vars} (ρ : Assignment vars) (l : Literal vars) :
   unfold Assignment.negVariable
   unfold Literal.eval at h_eval
   simp_all [↓reduceDIte]
-  rw [←Literal.eq_iff_variable_and_polarity_eq]
-  grind
+  ext
+  all_goals grind
 
 @[simp]
 lemma Assignment.toClause_eval {vars} (ρ : Assignment vars) : ρ.toClause.eval ρ = false := by

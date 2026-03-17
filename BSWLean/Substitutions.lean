@@ -419,7 +419,7 @@ lemma Clause.substitute_resolve_eq_resolve_substitute {vars sub_vars} {c₁ c₂
       obtain ⟨h_l'_neq, h_l'_in⟩ := h
       constructor
       · by_contra!
-        rw [←Literal.eq_iff_variable_and_polarity_eq] at h_l'_neq
+        rw [Literal.ext_iff] at h_l'_neq
         simp_all only [Variable.toLiteral]
         have : l.polarity := by grind
         have : l.variable = v := by grind
@@ -433,7 +433,7 @@ lemma Clause.substitute_resolve_eq_resolve_substitute {vars sub_vars} {c₁ c₂
       obtain ⟨h_l'_neq, h_l'_in⟩ := h
       constructor
       · by_contra!
-        rw [←Literal.eq_iff_variable_and_polarity_eq] at h_l'_neq
+        rw [Literal.ext_iff] at h_l'_neq
         simp_all only [Variable.toNegLiteral]
         have : ¬l.polarity := by grind
         have : l.variable = v := by grind

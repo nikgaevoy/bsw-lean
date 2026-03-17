@@ -1077,10 +1077,8 @@ lemma width_combine (vars) {φ : CNFFormula vars}
           constructor
           swap
           · have : x = v.toNegLiteral temp_fix₁ := by
-              rw [←Literal.eq_iff_variable_and_polarity_eq]
-              unfold v Variable.toNegLiteral Literal.variable Literal.v
-              simp
-              assumption
+              ext
+              all_goals aesop
             rw [this] at idea₂
             exact idea₂
           intro l h_l
@@ -1228,14 +1226,10 @@ lemma var_incl {vars} (v : Variable) (C : Clause vars) (h_v_in_vars : v ∈ vars
   obtain ⟨h_sub_left, h_sub_right⟩ := h_sub
   by_cases a.polarity
   case pos h_v =>
-    have : a = v.toLiteral h_v_in_vars := by
-      rw [←Literal.eq_iff_variable_and_polarity_eq]
-      aesop (add safe unfold Variable.toLiteral)
+    have : a = v.toLiteral h_v_in_vars := by aesop (add safe unfold Variable.toLiteral)
     grind
   case neg h_v =>
-    have : a = v.toNegLiteral h_v_in_vars := by
-      rw [←Literal.eq_iff_variable_and_polarity_eq]
-      aesop (add safe unfold Variable.toNegLiteral)
+    have : a = v.toNegLiteral h_v_in_vars := by aesop (add safe unfold Variable.toNegLiteral)
     grind
 
 
