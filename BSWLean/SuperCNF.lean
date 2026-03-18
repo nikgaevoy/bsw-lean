@@ -565,6 +565,13 @@ lemma Clause.combine_not_variables {vars₁} {vars₂} (c₁ : Clause vars₁) (
 lemma Clause.convert_empty {vars₁ vars₂} (c : Clause vars₁) {h} (_ : c = ∅) :
     c.convert vars₂ h = ∅ := by aesop
 
+@[aesop unsafe]
+lemma Clause.substitute_subset {vars sub_vars} (c : Clause vars)
+    (ρ : Assignment sub_vars) (h₁) :
+    ((((c.substitute ρ).get h₁) : Clause (vars \ sub_vars)).convert vars <| by grind) ⊆ c := by
+  intro _
+  aesop (add safe unfold [Clause.substitute, Clause.convert])
+
 /-- Another technical lemma from the future. -/
 lemma Clause.substitute_combine {vars} {sub_vars} (c : Clause vars) (ρ : Assignment sub_vars)
     (h_subset : sub_vars ⊆ vars) (h : (c.substitute ρ).isSome) :

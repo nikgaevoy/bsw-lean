@@ -784,89 +784,13 @@ lemma substitute_second_trivial_property {vars}
     (C_2 : Clause vars)
     (h_C_2_conv : C_2 ∈ φ ∧ C_2.substitute ρ_false = some C_1)
     : C_0 ⊆ C_2 := by
-
-  -- 1. Take an arbitrary literal in C_0
-  intro l hl
-
-  -- 2. Unfold the conversion of C_1 to C_0
-  -- h_C_1_conv_right : C_1.convert vars h_incl = C_0
-  rw [← h_C_1_conv_right] at hl
-
-  -- 3. Since l ∈ C_1.convert, there must be a source literal l' ∈ C_1
-  -- You'll likely need to unfold Clause.convert or use a lemma like 'mem_convert'
-  unfold Clause.convert at hl
-  simp only [Finset.mem_filterMap] at hl
-  rcases hl with ⟨l_orig, hl_orig_in, h_l_eq⟩
-  -- h_l_eq tells us that l is just the converted version of l_orig
-
-  -- 4. Now look at the substitution: C_2.substitute ρ_false = some C_1
-  have h_sub := h_C_2_conv.right
-  unfold Clause.substitute at h_sub
-
-  -- 5. Handle the match/split logic
-  generalize h_split : Clause.split C_2 {x.variable} = split_res at h_sub
-  rcases split_res with ⟨c_in, c_out⟩
-
-  split at h_sub
-  next c_in c_out prop C_xx =>
-  split_ifs at h_sub with h_eval
-
-  · injection h_sub with h_c_out_eq
-
-    -- 6. Connect l_orig (in C_1) to C_2
-    -- Since C_1 = c_out, l_orig is in c_out
-    rw [← h_c_out_eq] at hl_orig_in
-
-    unfold Clause.split at h_split
-
-    simp at h_split
-    subst h_value_false h_C_1_conv_right h_c_out_eq
-    simp_all only [Prod.mk.injEq, Bool.not_eq_true, Bool.decide_eq_false, ↓reduceDIte,
-      Option.some.injEq]
-    subst h_l_eq
-    obtain ⟨fst, snd⟩ := c_in
-    obtain ⟨left, right⟩ := C_xx
-    obtain ⟨left_1, right_1⟩ := h_split
-    obtain ⟨left_2, right_2⟩ := h_C_2_conv
-    subst left right left_1 right_1
-
-    sorry
-    -- unfold Literal.convert
-    -- split
-    -- next l h_mem v h_v_mem_vars h_mem_1 =>
-    --   unfold Clause.shrink at hl_orig_in
-    --   simp at hl_orig_in
-    --   obtain ⟨w, h⟩ := hl_orig_in
-    --   obtain ⟨w_1, h⟩ := h
-    --   obtain ⟨left, right⟩ := w_1
-    --   have : Literal.pos v h_mem_1 = w := by
-    --     unfold Literal.restrict at h
-    --     split at h
-    --     next l_1 h_mem_2 v_1 h_v_mem_vars_1 h_mem_3 =>
-    --       simp_all only [Finset.mem_sdiff, Literal.variable_mem_vars, Finset.mem_singleton,
-    --         true_and, Literal.pos.injEq]
-    --     next l_1 h_mem_2 v_1 h_v_mem_vars_1 h_mem_3 =>
-    --       simp_all only [Finset.mem_sdiff, Literal.variable_mem_vars, Finset.mem_singleton,
-    --         true_and, reduceCtorEq]
-    --   subst this
-    --   simp_all only
-    -- next l h_mem v h_v_mem_vars h_mem_1 =>
-    --   unfold Clause.shrink at hl_orig_in
-    --   simp at hl_orig_in
-    --   obtain ⟨w, h⟩ := hl_orig_in
-    --   obtain ⟨w_1, h⟩ := h
-    --   obtain ⟨left, right⟩ := w_1
-    --   have : Literal.neg v h_mem_1 = w := by
-    --     unfold Literal.restrict at h
-    --     split at h
-    --     next l_1 h_mem_2 v_1 h_v_mem_vars_1 h_mem_3 =>
-    --       simp_all only [Finset.mem_sdiff, Literal.variable_mem_vars, Finset.mem_singleton,
-    --         true_and, reduceCtorEq]
-    --     next l_1 h_mem_2 v_1 h_v_mem_vars_1 h_mem_3 =>
-    --       simp_all only [Finset.mem_sdiff, Literal.variable_mem_vars, Finset.mem_singleton,
-    --         true_and, Literal.neg.injEq]
-    --   subst this
-    --   simp_all only
+  have : C_0 =
+    ((C_2.substitute (fun _ _ => ¬x.polarity : Assignment {x.variable})).get (by aesop)).convert
+      vars (by
+        intro t
+        have := Literal.variable_mem_vars t
+        aesop) := by grind
+  aesop
 
 -- Gemini generated this lemma
 
