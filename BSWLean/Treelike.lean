@@ -347,9 +347,6 @@ lemma right_cancel {x y : ℕ} (z : ℕ) : x ≤ y ↔ x + z ≤ y + z := by ome
 
 lemma left_cancel_one {x y : ℕ} : y ≥ 1 → x ≤ y - 1 → 1 + x ≤ 1 + y - 1 := by omega
 
-lemma finset_not_empty_singleton {α} {s : Finset α} {x : α} (h₁ : s ⊆ {x}) (h₂ : s ≠ ∅) :
-    s = {x} := by simp_all
-
 /-- Tree-like Resolution is complete. -/
 theorem unsat_implies_tree_like_refutation {vars} {φ : CNFFormula vars}
     (h_unsat : Unsat φ) : ∃ π : TreeLikeRefutation φ, π.size ≤ 2 * 2 ^ vars.card - 1 := by
@@ -363,19 +360,10 @@ theorem unsat_implies_tree_like_refutation {vars} {φ : CNFFormula vars}
       specialize h a
       rw [CNFFormula.eval_eq_false_iff_exists_falsified_clause] at h
       obtain ⟨c, h_c_in_φ, h_c_eval_a_false⟩ := h
-      have h_c_eq_bot : c = BotClause ∅ := by
-        unfold BotClause
-        rw [@Finset.eq_empty_iff_forall_notMem]
-        intro l h_l_in_c
-        cases l
-        case mk v h_v_mem_vars =>
-          grind
-      rw [←h_c_eq_bot]
-      exact h_c_in_φ
+      have h_c_eq_bot : c = BotClause ∅ := by grind
+      grind
     use TreeLikeResolution.axiom_clause this
-    simp only [Finset.card_empty, pow_zero]
-    unfold TreeLikeResolution.size
-    trivial
+    grind [TreeLikeResolution.size]
 
   case insert v vars' h_v_in_vars h_subset h_v_not_in_vars' ih =>
     let ρ_true : Assignment {v} := (fun _ => fun _ => True)
@@ -408,32 +396,19 @@ theorem unsat_implies_tree_like_refutation {vars} {φ : CNFFormula vars}
     let π_false_lifted := π_false.unsubstitute ρ_false (by aesop)
 
     let also_vars := insert v vars'
+    have h_also_vars_card : also_vars.card = vars'.card + 1 := by aesop
 
     have h_size_π_true_lifted : π_true_lifted.size ≤ 2^also_vars.card - 1 := by
       unfold π_true_lifted
       trans π_true.size
       · apply TreeLikeResolution.unsubstitute_size
-      · trans 2 * 2 ^ (insert v vars' \ {v}).card - 1
-        · assumption
-
-        have : (insert v vars' \ {v}) = vars' := by aesop
-        rw [this]
-        have : also_vars.card = vars'.card + 1 := by aesop
-        rw [this]
-        rw [Nat.pow_add']
+      · grind
 
     have h_size_π_false_lifted : π_false_lifted.size ≤ 2^also_vars.card - 1 := by
       unfold π_false_lifted
       trans π_false.size
       · apply TreeLikeResolution.unsubstitute_size
-      · trans 2 * 2 ^ (insert v vars' \ {v}).card - 1
-        · assumption
-
-        have : (insert v vars' \ {v}) = vars' := by aesop
-        rw [this]
-        have : also_vars.card = vars'.card + 1 := by aesop
-        rw [this]
-        rw [Nat.pow_add']
+      · grind
 
     let c_true := π_true.unsubstitute_rhs ρ_true
     let c_false := π_false.unsubstitute_rhs ρ_false
@@ -465,35 +440,21 @@ theorem unsat_implies_tree_like_refutation {vars} {φ : CNFFormula vars}
 
     have h_c_true : c_true ⊆ v_neg := by
       unfold c_true
-      let h := π_true.unsubstitute_rhs_variables ρ_true
+      have h := π_true.unsubstitute_rhs_variables ρ_true
           (by exact Finset.union_subset_left fun ⦃a⦄ a_1 ↦ a_1)
       let mid := ((BotClause (insert v vars' \ {v})).combine ρ_true.toClause
         Finset.sdiff_disjoint).convert_trivial also_vars h_convert
-      suffices h_combine : mid ⊆ v_neg by
-        trans mid
-        · exact h
-        · assumption
-      unfold mid BotClause Clause.combine
-      simp [Clause.convert_empty]
-      unfold Clause.convert_trivial
-      rw [Clause.convert_convert]
-      refine Finset.subset_of_eq ρ_true_clause
+      trans mid
+      all_goals aesop
 
     have h_c_false : c_false ⊆ v_pos := by
       unfold c_false
-      let h := π_false.unsubstitute_rhs_variables ρ_false
+      have h := π_false.unsubstitute_rhs_variables ρ_false
         (by exact Finset.union_subset_left fun ⦃a⦄ a_1 ↦ a_1)
       let mid := ((BotClause (insert v vars' \ {v})).combine ρ_false.toClause
         Finset.sdiff_disjoint).convert_trivial also_vars h_convert
-      suffices h_combine : mid ⊆ v_pos by
-        trans mid
-        · exact h
-        · assumption
-      unfold mid BotClause Clause.combine
-      simp [Clause.convert_empty]
-      unfold Clause.convert_trivial
-      rw [Clause.convert_convert]
-      refine Finset.subset_of_eq ρ_false_clause
+      trans mid
+      all_goals aesop
 
     have h_card_inequality : 2 ^ also_vars.card - 1 ≤ 2 * 2 ^ (insert v vars').card - 1 := by grind
 
@@ -513,8 +474,6 @@ theorem unsat_implies_tree_like_refutation {vars} {φ : CNFFormula vars}
         rw [TreeLikeResolution.convert_size]
         grind
       case neg =>
-        have h_c_true : c_true = v_neg := finset_not_empty_singleton h_c_true h_true_empty
-        have h_c_false : c_false = v_pos := finset_not_empty_singleton h_c_false h_false_empty
         let ξ : TreeLikeResolution φ ∅ := TreeLikeResolution.resolve
           c_false c_true v (Finset.mem_insert_self v vars')
           (by exact Disjoint.notMem_of_mem_left_finset (fun ⦃x⦄ a a_1 ↦ a_1) h_v_in_vars)
