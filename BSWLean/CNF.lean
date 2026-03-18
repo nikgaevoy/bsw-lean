@@ -37,7 +37,6 @@ abbrev Assignment (vars : Variables) := (v : Variable) → v ∈ vars → Bool
 it's variable belongs to the set of variables. -/
 @[aesop safe [constructors]]
 structure Literal (vars : Variables) where
-  mk ::
   /-- variable -/
   v : { v : Variable // v ∈ vars }
   /-- polarity: `True` if positive, `False` otherwise -/
@@ -70,7 +69,7 @@ lemma Literal.variable_mem_vars {vars} (l : Literal vars) : l.variable ∈ vars 
   aesop (add safe unfold Literal.variable)
 
 @[aesop safe, grind =]
-lemma Literal.variable_eq {vars} (l : Literal vars) : l.variable = l.v := by aesop
+lemma Literal.variable_eq {vars} (l : Literal vars) : l.variable = l.v := by rfl
 
 @[simp]
 lemma Literal.variable_mk {vars} (v : {v : Variable // v ∈ vars}) (p : Bool) :
@@ -97,12 +96,20 @@ lemma Literal.reduce_neg_self {vars} {l : Literal vars} (h : ¬l.polarity) :
     (Literal.mk ⟨l.variable, by aesop⟩ false) = l := by aesop
 
 @[simp]
-lemma Literal.reduce_toLiteral {vars} {l : Literal vars} (h : l.polarity) :
-    (l.variable.toLiteral <| by aesop) = l := by aesop
+lemma Literal.reduce_toLiteral_variable {vars} {v : Variable} {h : v ∈ vars} :
+    (v.toLiteral h).variable = v := by rfl
 
 @[simp]
-lemma Literal.reduce_toNegLiteral {vars} {l : Literal vars} (h : ¬l.polarity) :
-    (l.variable.toNegLiteral <| by aesop) = l := by aesop
+lemma Literal.reduce_toNegLiteral_variable {vars} {v : Variable} {h : v ∈ vars} :
+    (v.toNegLiteral h).variable = v := by rfl
+
+@[simp]
+lemma Literal.reduce_toLiteral_polarity {vars} {v : Variable} {h : v ∈ vars} :
+    (v.toLiteral h).polarity = true := by rfl
+
+@[simp]
+lemma Literal.reduce_toNegLiteral_polarity {vars} {v : Variable} {h : v ∈ vars} :
+    (v.toNegLiteral h).polarity = false := by rfl
 
 /-- Clauses are defined as finite set of literals, so we lose the order of them. -/
 abbrev Clause (vars : Variables) := Finset (Literal vars)
@@ -228,7 +235,6 @@ lemma Clause.subset_variables {vars} {c₁ c₂ : Clause vars} (h : c₁ ⊆ c�
   intro l h_l
   aesop
 
-@[aesop unsafe]
 lemma Clause.resolve_maintains_subset {vars} {c₁ c₁' c₂ c₂' : Clause vars} {x : Variable}
     (h_x : x ∈ vars) (h_subset₁ : c₁ ⊆ c₁') (h_subset₂ : c₂ ⊆ c₂') :
     Clause.resolve c₁ c₂ x h_x ⊆ Clause.resolve c₁' c₂' x h_x := by
@@ -236,7 +242,6 @@ lemma Clause.resolve_maintains_subset {vars} {c₁ c₁' c₂ c₂' : Clause var
   intro l h_l_in_resolve
   aesop
 
-@[aesop safe]
 lemma Clause.resolve_satisfies_h_resolve_left {vars} {c₁ c₂ : Clause vars} {v : Variable}
     (h_v_mem_vars : v ∈ vars) :
     (c₁ ⊆ c₁.resolve c₂ v h_v_mem_vars ∪ { v.toLiteral h_v_mem_vars }) := by
@@ -245,7 +250,6 @@ lemma Clause.resolve_satisfies_h_resolve_left {vars} {c₁ c₂ : Clause vars} {
   simp only [Finset.union_singleton, Finset.mem_insert, Finset.mem_union, Finset.mem_erase, ne_eq]
   tauto
 
-@[aesop safe]
 lemma Clause.resolve_satisfies_h_resolve_right {vars} {c₁ c₂ : Clause vars} {v : Variable}
     (h_v_mem_vars : v ∈ vars) :
     (c₂ ⊆ c₁.resolve c₂ v h_v_mem_vars ∪ { v.toNegLiteral h_v_mem_vars }) := by

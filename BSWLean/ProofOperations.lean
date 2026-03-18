@@ -545,28 +545,7 @@ lemma TreeLikeResolution.regularize_rhs_subset {vars : Variables} {φ : CNFFormu
   induction π
   case axiom_clause => aesop
   case resolve c c₁ c₂ v h_v_mem h_v_not π₁ π₂ h_res ih₁ ih₂ =>
-    let c₁' := π₁.regularize_rhs
-    let c₂' := π₂.regularize_rhs
-
-    if h₁ : v.toLiteral h_v_mem ∉ c₁' then
-      unfold regularize_rhs
-      simp [c₁', h₁]
-      trans c₁ \ {v.toLiteral h_v_mem}
-      · grind
-      · grind
-    else if h₂ : v.toNegLiteral h_v_mem ∉ c₂' then
-      unfold regularize_rhs
-      simp [c₁', h₁, c₂', h₂]
-      trans c₂ \ {v.toNegLiteral h_v_mem}
-      · grind
-      · grind
-    else
-      unfold regularize_rhs
-      simp [c₁', h₁, c₂', h₂]
-      trans c₁.resolve c₂ v h_v_mem
-      · aesop
-      · unfold Clause.resolve
-        grind
+    grind [regularize_rhs, Clause.resolve]
 
 /-- Enforces `IsRegularRes` property, while strengthening the proof. -/
 def TreeLikeResolution.regularize {vars : Variables} {φ : CNFFormula vars}
@@ -667,8 +646,8 @@ lemma TreeLikeResolution.regularize_isRegularRes {vars : Variables} {φ : CNFFor
       unfold regularize
       simp only [h₁, ↓reduceDIte, h₂, c₂', c₁']
       unfold IsRegularRes
-      have : (v.toLiteral h_v_mem).variable ∈ c₁'.variables := by aesop
-      have : (v.toNegLiteral h_v_mem).variable ∈ c₂'.variables := by aesop
+      have : (v.toLiteral h_v_mem).variable ∈ c₁'.variables := by grind
+      have : (v.toNegLiteral h_v_mem).variable ∈ c₂'.variables := by grind
       aesop
 
 lemma resolution_regularize {vars} {φ : CNFFormula vars} {c : Clause vars}

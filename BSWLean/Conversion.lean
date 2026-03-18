@@ -17,12 +17,6 @@ def Assignment.negVariable {vars} (ρ : Assignment vars) (v : Variable) : Option
   else
     none
 
-@[aesop unsafe, grind →]
-lemma Assignment.negVariable_variable {vars} {ρ : Assignment vars} {v : Variable}
-    {y : Literal vars} (h : y ∈ Assignment.negVariable ρ v) : y.variable = v := by
-  aesop
-
-@[aesop unsafe, grind .]
 lemma Assignment.negVariable_inj {vars} {ρ : Assignment vars} {x₁ x₂ : Variable} {y : Literal vars}
     (h_y_in_mp_x1 : y ∈ ρ.negVariable x₁) (h_y_in_mp_x2 : y ∈ ρ.negVariable x₂) : x₁ = x₂ := by
   grind [Assignment.negVariable, Variable.toLiteral, Variable.toNegLiteral]

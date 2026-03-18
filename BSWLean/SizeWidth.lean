@@ -953,7 +953,7 @@ lemma width_combine (vars) {φ : CNFFormula vars}
 
   · -- Case 2: The set is the singleton
   -- h_eq : TreeLikeResolution.unsubstitute_rhs ... = {x.negate}
-    have idea₂ : ∀ C ∈ φ_subs_false_conv, ∃ (π : TreeLikeResolution φ C), π.width ≤ W + 1:= by
+    have idea₂ : ∀ C ∈ φ_subs_false_conv, ∃ (π : TreeLikeResolution φ C), π.width ≤ W + 1 := by
 
       intro C_0 h_c
       have entry₁ : ∃ C_1 ∈ φ_subs_false_unconv,
@@ -1077,8 +1077,9 @@ lemma width_combine (vars) {φ : CNFFormula vars}
           constructor
           swap
           · have : x = v.toNegLiteral temp_fix₁ := by
+              unfold v
               ext
-              all_goals aesop
+              all_goals simp [h]
             rw [this] at idea₂
             exact idea₂
           intro l h_l
