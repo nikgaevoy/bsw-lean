@@ -558,10 +558,7 @@ def convert_proof (W : ℕ) {vars₁ vars₂ : Variables} {φ : CNFFormula vars�
     subset_of_vars_clause vars₁ vars₂ C h_subs l a)) // π₂.width ≤ W } :=
 
   have idea : ∀ c : Clause vars₁, (∀ l ∈ c, l.variable ∈ vars₂) := by
-    intro c l a
-    subst h_conv
-    apply h_subs
-    simp_all only [Literal.variable_mem_vars]
+    aesop
 
 
   have idea' : Finset.card C ≤ W := by
@@ -650,22 +647,7 @@ def convert_proof (W : ℕ) {vars₁ vars₂ : Variables} {φ : CNFFormula vars�
           · have new₂ : ({v.toLiteral h_v_mem} : Clause vars₁).convert vars₂ incl₂ =
                 {v.toLiteral v_new_mem} := by
               unfold Clause.convert
-              simp
-              subst h_conv
-              simp_all only [Clause.convert_keeps_variables, not_false_eq_true,
-                Finset.union_singleton, Finset.mem_insert, forall_eq_or_imp, Finset.mem_singleton,
-                implies_true, and_self]
-              obtain ⟨left_1, right_1⟩ := h_res
-              ext a : 1
-              simp_all only [Finset.mem_filterMap, Finset.mem_singleton,
-                Option.dite_none_right_eq_some, Option.some.injEq, and_exists_self, exists_prop_eq]
-              apply Iff.intro
-              · intro a_1
-                subst a_1
-                rfl
-              · intro a_1
-                subst a_1
-                rfl
+              aesop
 
             rw [new₂]
 
@@ -686,21 +668,7 @@ def convert_proof (W : ℕ) {vars₁ vars₂ : Variables} {φ : CNFFormula vars�
         have new₂ : ({v.toNegLiteral h_v_mem} : Clause vars₁).convert vars₂ incl₂ =
             {v.toNegLiteral v_new_mem} := by
           unfold Clause.convert
-          simp
-          subst h_conv
-          simp_all only [Clause.convert_keeps_variables, not_false_eq_true, Finset.union_singleton,
-            Finset.mem_insert, forall_eq_or_imp, Finset.mem_singleton, implies_true, and_self]
-          obtain ⟨left_1, right_1⟩ := h_res
-          ext a : 1
-          simp_all only [Finset.mem_filterMap, Finset.mem_singleton, Option.dite_none_right_eq_some,
-            Option.some.injEq, and_exists_self, exists_prop_eq]
-          apply Iff.intro
-          · intro a_1
-            subst a_1
-            rfl
-          · intro a_1
-            subst a_1
-            rfl
+          aesop
         rw [new₂]
 
 
@@ -728,40 +696,6 @@ lemma width_respect_convert (vars₁ vars₂) (φ : CNFFormula vars₁)
    ∃ (π_2 : TreeLikeResolution φ₁ (C.convert vars₂ int_proof)), π_2.width ≤ W  := by
   let ⟨π, h⟩ := convert_proof W h_subs h_conv π_1 h_width_true
   exact ⟨π, h⟩
-
--- def convert_proof_substitution {vars₁ vars₂ : Finset Variable}
---     {φ : CNFFormula vars₂}
---     (ρ : Assignment vars₁)
---     (h_subs : vars₁ ⊆ vars₂)
---     (π : TreeLikeResolution φ (BotClause vars₂)) :
---     TreeLikeResolution (φ.substitute ρ) (BotClause (vars₂ \ vars₁)) :=
-
---   match π with
---   | .axiom_clause h_in =>
---     have : (BotClause (vars₂ \ vars₁)) ∈ (φ.substitute ρ) := by
---       unfold CNFFormula.substitute
---       simp
---       aesop
---     let π₂ := TreeLikeResolution.axiom_clause (by
---     -- Prove that C_new is in the converted formula
---     -- This follows from the definition of CNFFormula.simple_convert
---       exact this)
---     π₂
---   | .resolve c₁ c₂ v h_v_mem h_v_not_mem π₁ π₂ h_res =>
---       -- Here you handle whether 'v' was substituted by 'ρ' or not
---       let π_new := TreeLikeResolution.resolve
---         (c₁.substitute ρ)
---         (c₂.substitute ρ)
---         v v_new_mem fact₄ π_a_new π_b_new h_resolve
---       π_new
-
-
-
-
-
-
-
-
 
 
 
