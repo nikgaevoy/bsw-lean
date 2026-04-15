@@ -461,33 +461,21 @@ theorem unsat_implies_tree_like_refutation {vars} {φ : CNFFormula vars}
     by_cases h_true_empty : c_true = ∅
     case pos =>
       unfold c_true at h_true_empty
-      let π' := π_true_lifted.convert h_true_empty
-      use π'
+      use π_true_lifted.convert h_true_empty
       rw [TreeLikeResolution.convert_size]
       grind
     case neg =>
       by_cases h_false_empty : c_false = ∅
       case pos =>
         unfold c_false at h_false_empty
-        let π' := π_false_lifted.convert h_false_empty
-        use π'
+        use π_false_lifted.convert h_false_empty
         rw [TreeLikeResolution.convert_size]
         grind
       case neg =>
-        let ξ : TreeLikeResolution φ ∅ := TreeLikeResolution.resolve
+        use TreeLikeResolution.resolve
           c_false c_true v (Finset.mem_insert_self v vars')
           (by exact Disjoint.notMem_of_mem_left_finset (fun ⦃x⦄ a a_1 ↦ a_1) h_v_in_vars)
           π_false_lifted π_true_lifted <| by aesop
-        use ξ
-        unfold TreeLikeResolution.size
-        trans 1 + 2 ^ also_vars.card - 1 + 2 ^ also_vars.card - 1
-        · trans 1 + 2 ^ also_vars.card - 1 + π_true_lifted.size
-          · rw [←right_cancel]
-            apply left_cancel_one
-            · exact Nat.one_le_two_pow
-            · assumption
-          · omega
-        · unfold also_vars
-          omega
+        grind [TreeLikeResolution.size, Nat.one_le_two_pow]
 
 #lint

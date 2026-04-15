@@ -341,28 +341,13 @@ This statement does not follow from the lemmas in the standard library, so we pr
 lemma filterMap_card {α β} [DecidableEq α] [DecidableEq β] (s : Finset α) {f : α → Option β} {h} :
     Finset.card (s.filterMap f h) ≤ Finset.card s := by
   induction s using Finset.induction_on
-  case empty =>
-    rfl
+  case empty => rfl
   case insert a s' h_a ih =>
-    have : (insert a s').card = s'.card + 1 := by
-      exact Finset.card_insert_of_notMem h_a
-    rw [this]
-    trans (Finset.filterMap f s' h).card + 1
-    swap
-    · simp [ih]
-    let b : Finset β := if h : (f a).isSome then {(f a).get h} else ∅
-    have : b.card ≤ 1 := by aesop
-    trans ((Finset.filterMap f s' h) ∪ b).card
-    swap
-    · simp_all only [b]
-      split
-      next h_1 =>
-        grind
-      next h_1 =>
-        simp_all
-    refine (Finset.eq_iff_card_ge_of_superset ?_).mpr ?_
-    · grind
-    · grind
+    rw [Finset.card_insert_of_notMem h_a]
+    grw [← ih]
+    trans ((Finset.filterMap f s' h) ∪ if h : (f a).isSome then {(f a).get h} else ∅).card
+    · exact (Finset.eq_iff_card_ge_of_superset (by grind)).mpr (by grind)
+    grind
 
 @[aesop safe]
 lemma Clause.substitute_card_leq_card {vars sub_vars} (c : Clause vars) (ρ : Assignment sub_vars)
