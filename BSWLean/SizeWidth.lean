@@ -183,6 +183,55 @@ lemma inter_idea_new_version (vars sub_vars) (lit : Literal (vars \ sub_vars))
   · aesop
 
 
+lemma sdiff_disjUnion_eq_vars {vars sub_vars : Variables} (h_subset : sub_vars ⊆ vars) :
+    Finset.disjUnion (vars \ sub_vars) sub_vars Finset.sdiff_disjoint = vars := by
+  aesop
+
+lemma var_in_vars_of_in_sdiff {vars sub_vars : Variables} {var : Variable}
+    (h_4 : var ∈ vars \ sub_vars) : var ∈ vars := by
+  grind
+
+lemma resolve_unsubstitute_subset (vars sub_vars : Variables) (φ : CNFFormula vars)
+    (var : Variable) (ρ : Assignment sub_vars) (c_2 c_3 : Clause (vars \ sub_vars))
+    (h_subset : sub_vars ⊆ vars) (h_4 : var ∈ vars \ sub_vars)
+    (p_1 : TreeLikeResolution (φ.substitute ρ) c_2)
+    (p_2 : TreeLikeResolution (φ.substitute ρ) c_3)
+    (inter_proof : Finset.disjUnion (vars \ sub_vars) sub_vars Finset.sdiff_disjoint = vars) :
+    ((p_1.unsubstitute_rhs ρ).resolve (p_2.unsubstitute_rhs ρ) var
+       (Finset.sdiff_subset h_4 : var ∈ vars)) ⊆
+    (((Clause.combine c_2 ρ.toClause Finset.sdiff_disjoint).convert_trivial
+      vars inter_proof).resolve
+      ((Clause.combine c_3 ρ.toClause Finset.sdiff_disjoint).convert_trivial
+        vars inter_proof) var (Finset.sdiff_subset h_4 : var ∈ vars)) := by
+  have idea₁ := TreeLikeResolution.unsubstitute_rhs_variables ρ p_1 h_subset
+  have idea₂ := TreeLikeResolution.unsubstitute_rhs_variables ρ p_2 h_subset
+  grind [resolve_subsets]
+
+lemma resolve_combined_le_c1 (vars sub_vars : Variables) (var : Variable)
+    (ρ : Assignment sub_vars) (c_1 c_2 c_3 : Clause (vars \ sub_vars))
+    (h_4 : var ∈ vars \ sub_vars)
+    (inter_proof : Finset.disjUnion (vars \ sub_vars) sub_vars Finset.sdiff_disjoint = vars)
+    (var_incl : var ∈ vars)
+    (left : c_2 ⊆ c_1 ∪ {var.toLiteral h_4})
+    (right : c_3 ⊆ c_1 ∪ {var.toNegLiteral h_4}) :
+    Finset.card (((Clause.combine c_2 ρ.toClause Finset.sdiff_disjoint).convert_trivial
+     vars inter_proof).resolve
+      ((Clause.combine c_3 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars
+        inter_proof) var var_incl) ≤
+    Finset.card ((Clause.combine c_1 ρ.toClause Finset.sdiff_disjoint).convert_trivial
+       vars inter_proof) := by
+  have idea₃ := inter_idea_new_version vars sub_vars
+    (var.toLiteral h_4) ρ c_1 c_2 inter_proof var_incl left
+  have idea₄ := inter_idea_new_version vars sub_vars
+     (var.toNegLiteral h_4) ρ c_1 c_3 inter_proof var_incl right
+  simp only [ge_iff_le]
+  exact resolve_subsets_trick var vars
+    ((Clause.combine c_1 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars inter_proof)
+    ((Clause.combine c_2 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars inter_proof)
+    ((Clause.combine c_3 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars inter_proof)
+    (by grind) idea₃ idea₄
+
+
 lemma resolve_ineq (vars sub_vars) (φ : CNFFormula vars) (var : Variable)
     (ρ : Assignment sub_vars) (c_1 c_2 c_3 : Clause (vars \ sub_vars))
     (h_subset : sub_vars ⊆ vars)
@@ -197,63 +246,33 @@ lemma resolve_ineq (vars sub_vars) (φ : CNFFormula vars) (var : Variable)
     max (Finset.card c_1) (max p_1.width p_2.width) + Finset.card sub_vars := by
   unfold TreeLikeResolution.unsubstitute_rhs
   simp
-  have inter_proof : Finset.disjUnion (vars \ sub_vars) sub_vars (Finset.sdiff_disjoint :
-    Disjoint (vars \ sub_vars) sub_vars) = vars := by
-    aesop
-  have var_incl : var ∈ vars := by
-    grind
-  have idea₁ : (p_1.unsubstitute_rhs ρ) ⊆
-    (Clause.combine c_2 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars (inter_proof)
-    := by
-    exact TreeLikeResolution.unsubstitute_rhs_variables ρ p_1 h_subset
-  have idea₂ : (p_2.unsubstitute_rhs ρ) ⊆
-    (Clause.combine c_3 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars (inter_proof)
-    := by
-    exact TreeLikeResolution.unsubstitute_rhs_variables ρ p_2 h_subset
 
+  have inter_proof := sdiff_disjUnion_eq_vars h_subset
+  have var_incl := var_in_vars_of_in_sdiff h_4
+
+  -- 1st Bound: Subset relation of unsubstitutions
   trans Finset.card (((Clause.combine c_2 ρ.toClause Finset.sdiff_disjoint).convert_trivial
-    vars inter_proof).resolve ((Clause.combine c_3 ρ.toClause
-      Finset.sdiff_disjoint).convert_trivial vars inter_proof) var
-        (Finset.sdiff_subset h_4 : var ∈ vars))
+     vars inter_proof).resolve
+    ((Clause.combine c_3 ρ.toClause
+    Finset.sdiff_disjoint).convert_trivial vars inter_proof) var var_incl)
+  · exact Finset.card_le_card
+      (resolve_unsubstitute_subset vars sub_vars φ var ρ c_2 c_3 h_subset h_4 p_1 p_2 inter_proof)
 
-  · have inter_idea :
-      ((p_1.unsubstitute_rhs ρ).resolve (p_2.unsubstitute_rhs ρ) var
-        (Finset.sdiff_subset h_4 : var ∈ vars)) ⊆
-      (((Clause.combine c_2 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars
-        inter_proof).resolve ((Clause.combine c_3 ρ.toClause Finset.sdiff_disjoint).convert_trivial
-          vars inter_proof) var (Finset.sdiff_subset h_4 : var ∈ vars)) := by
-      grind [resolve_subsets]
-
-
-    exact Finset.card_le_card inter_idea
+  -- 2nd Bound: Setup the upper maximum bound
   trans Finset.card c_1 + Finset.card sub_vars
   swap
   · simp_all only [add_le_add_iff_right, le_sup_left]
-  trans Finset.card ((Clause.combine c_1 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars
-    inter_proof)
+
+  -- 3rd Bound: Substitute the combined c_1 cardinality
+  trans Finset.card ((Clause.combine c_1 ρ.toClause Finset.sdiff_disjoint).convert_trivial
+    vars inter_proof)
   swap
   · exact card_combination c_1
 
-  have idea₃ :
-      ((Clause.combine c_2 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars inter_proof) ⊆
-      ((Clause.combine c_1 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars inter_proof) ∪
-        {var.toLiteral var_incl} := by
-    exact inter_idea_new_version vars sub_vars (var.toLiteral h_4) ρ c_1 c_2 inter_proof
-      var_incl left
+  -- Final Step: Bounding the c_2/c_3 resolve combination by c_1 combination
+  exact resolve_combined_le_c1
+    vars sub_vars var ρ c_1 c_2 c_3 h_4 inter_proof var_incl left right
 
-  have idea₄ :
-    ((Clause.combine c_3 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars inter_proof) ⊆
-    ((Clause.combine c_1 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars inter_proof) ∪
-      {var.toNegLiteral var_incl} := by
-    exact inter_idea_new_version vars sub_vars (var.toNegLiteral h_4) ρ c_1 c_3 inter_proof
-      var_incl right
-
-  simp only [ge_iff_le]
-  exact resolve_subsets_trick var vars
-    ((Clause.combine c_1 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars (by aesop))
-    ((Clause.combine c_2 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars (by aesop))
-    ((Clause.combine c_3 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars (by aesop))
-    (by grind) idea₃ idea₄
 
 
 
