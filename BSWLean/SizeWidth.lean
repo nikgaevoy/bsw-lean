@@ -256,74 +256,6 @@ lemma resolve_ineq (vars sub_vars) (φ : CNFFormula vars) (var : Variable)
     (by grind) idea₃ idea₄
 
 
-lemma resolve_width_case (vars sub_vars) (φ : CNFFormula vars) (var : Variable)
-    (ρ : Assignment sub_vars) (c_1 c_2 c_3 : Clause (vars \ sub_vars))
-    (h_subset : sub_vars ⊆ vars)
-    (h_4 : var ∈ vars \ sub_vars) (h_0 : var ∉ c_1.variables)
-    (p_1 : TreeLikeResolution (φ.substitute ρ) c_2)
-    (p_2 : TreeLikeResolution (φ.substitute ρ) c_3)
-    (c₁ c₂ : Clause vars)
-    (π₁ : TreeLikeResolution φ c₁)
-    (π₂ : TreeLikeResolution φ c₂)
-    (left : c_2 ⊆ c_1 ∪ {var.toLiteral h_4})
-    (right : c_3 ⊆ c_1 ∪ {var.toNegLiteral h_4})
-    (v : Variable)
-    (h_v_mem_vars : v ∈ vars)
-    (h_v_not_mem_c : v ∉ ((TreeLikeResolution.resolve c_2 c_3 var h_4 h_0 p_1 p_2
-      (⟨left, right⟩ : c_2 ⊆ c_1 ∪ {var.toLiteral h_4} ∧ c_3 ⊆ c_1 ∪
-      {var.toNegLiteral h_4})).unsubstitute_rhs ρ).variables)
-    (left_1 : c₁ ⊆ (TreeLikeResolution.resolve c_2 c_3 var h_4 h_0 p_1 p_2
-      (⟨left, right⟩ : c_2 ⊆ c_1 ∪ {var.toLiteral h_4} ∧
-      c_3 ⊆ c_1 ∪ {var.toNegLiteral h_4})).unsubstitute_rhs ρ ∪ {v.toLiteral h_v_mem_vars})
-    (right_1 : c₂ ⊆
-      (TreeLikeResolution.resolve c_2 c_3 var h_4 h_0 p_1 p_2
-      (⟨left, right⟩ : c_2 ⊆ c_1 ∪ {var.toLiteral h_4} ∧
-        c_3 ⊆ c_1 ∪ {var.toNegLiteral h_4})).unsubstitute_rhs ρ ∪
-      {v.toNegLiteral h_v_mem_vars})
-    (heq : (TreeLikeResolution.resolve c_2 c_3 var h_4 h_0 p_1 p_2
-      (⟨left, right⟩ : c_2 ⊆ c_1 ∪ {var.toLiteral h_4} ∧
-        c_3 ⊆ c_1 ∪ {var.toNegLiteral h_4})).unsubstitute ρ h_subset =
-      TreeLikeResolution.resolve c₁ c₂ v h_v_mem_vars h_v_not_mem_c π₁ π₂
-        (⟨left_1, right_1⟩ : c₁ ⊆ (TreeLikeResolution.resolve c_2 c_3 var h_4 h_0 p_1 p_2
-        (⟨left, right⟩ : c_2 ⊆ c_1 ∪ {var.toLiteral h_4} ∧
-          c_3 ⊆ c_1 ∪ {var.toNegLiteral h_4})).unsubstitute_rhs ρ ∪ {v.toLiteral h_v_mem_vars} ∧
-          c₂ ⊆
-      (TreeLikeResolution.resolve c_2 c_3 var h_4 h_0 p_1 p_2 (⟨left, right⟩ :
-        c_2 ⊆ c_1 ∪ {var.toLiteral h_4} ∧ c_3 ⊆ c_1 ∪ {var.toNegLiteral h_4})).unsubstitute_rhs ρ ∪
-          {v.toNegLiteral h_v_mem_vars}))
-    (h_2 : (p_1.unsubstitute ρ h_subset).width ≤ p_1.width + Finset.card sub_vars)
-    (h_3 : (p_2.unsubstitute ρ h_subset).width ≤ p_2.width + Finset.card sub_vars) :
-    (π₁.width ≤ max (Finset.card c_1) (max p_1.width p_2.width) + Finset.card sub_vars) ∧
-      (π₂.width ≤ max (Finset.card c_1) (max p_1.width p_2.width) + Finset.card sub_vars)
-    := by
-
-    constructor
-
-    · trans p_1.width + Finset.card sub_vars
-      swap
-      · simp
-      trans (p_1.unsubstitute ρ h_subset).width
-      swap
-      · exact h_2
-      unfold TreeLikeResolution.unsubstitute at heq
-      simp at heq
-      obtain ⟨heq₁, heq₂, heq₃, heq₄, heq₅⟩ := heq
-      subst heq₁ heq₂ heq₃
-      simp_all only [heq_eq_eq, Finset.union_singleton, le_refl]
-
-    · trans p_2.width + Finset.card sub_vars
-      swap
-      · simp
-      trans (p_2.unsubstitute ρ h_subset).width
-      swap
-      · exact h_3
-      unfold TreeLikeResolution.unsubstitute at heq
-      simp at heq
-      obtain ⟨heq₁, heq₂, heq₃, heq₄, heq₅⟩ := heq
-      subst heq₁ heq₂ heq₃
-      simp_all only [heq_eq_eq, Finset.union_singleton, le_refl]
-
-
 
 lemma induction_step_width_incr {vars sub_vars} {φ : CNFFormula vars} {var : Variable}
     {ρ : Assignment sub_vars} (c_1 c_2 c_3 : Clause (vars \ sub_vars))
@@ -347,10 +279,25 @@ lemma induction_step_width_incr {vars sub_vars} {φ : CNFFormula vars} {var : Va
     obtain ⟨left_1, right_1⟩ := h_resolve
     apply And.intro
     · exact resolve_ineq vars sub_vars φ var ρ c_1 c_2 c_3 h_subset h_4 h_0 p_1 p_2 left right
-    · apply resolve_width_case vars sub_vars φ
-          var ρ c_1 c_2 c_3 h_subset h_4 h_0 p_1
-          p_2 c₁ c₂ π₁ π₂ left right v h_v_mem_vars h_v_not_mem_c
-          left_1 right_1 heq h_2 h_3
+    · constructor
+      · trans p_1.width + Finset.card sub_vars
+        swap
+        · simp
+        trans (p_1.unsubstitute ρ h_subset).width
+        swap
+        · exact h_2
+        unfold TreeLikeResolution.unsubstitute at heq
+        grind only [Finset.union_singleton, le_refl]
+
+
+      · trans p_2.width + Finset.card sub_vars
+        swap
+        · simp
+        trans (p_2.unsubstitute ρ h_subset).width
+        swap
+        · exact h_3
+        unfold TreeLikeResolution.unsubstitute at heq
+        grind only [Finset.union_singleton, le_refl]
 
 
 
@@ -441,38 +388,20 @@ lemma ufold_one_literal {vars} {φ : CNFFormula vars}
     (fact₀ : {x.variable} ⊆ vars) :
     (TreeLikeResolution.unsubstitute_rhs ρ_true π_1) ⊆ ({x.negate} : Clause vars) := by
 
-
   unfold TreeLikeRefutation at π_1
-  
-  have trick :  Finset.disjUnion (vars \ {x.variable}) {x.variable}
-      (Finset.sdiff_disjoint : Disjoint (vars \ {x.variable}) {x.variable}) = vars := by
-    aesop
-
-  have : (π_1.unsubstitute_rhs ρ_true) ⊆
-      (Clause.combine (BotClause (vars \ {x.variable})) ρ_true.toClause
-      Finset.sdiff_disjoint).convert_trivial vars trick := by
-    exact TreeLikeResolution.unsubstitute_rhs_variables ρ_true π_1 fact₀
 
   trans ((BotClause (vars \ {x.variable})).combine ρ_true.toClause
     (Finset.sdiff_disjoint : Disjoint (vars \ {x.variable}) {x.variable})).convert_trivial
-    vars trick
+    vars (by aesop)
 
-  · exact this
+  · exact TreeLikeResolution.unsubstitute_rhs_variables ρ_true π_1 fact₀
 
-  have trick₁ : ∀ l ∈ ρ_true.toClause, l.variable ∈ vars := by
-    aesop
+  · unfold BotClause
+    unfold Clause.combine
+    simp
+    unfold Clause.convert_trivial
+    grind [trivial_subs_unfold, Clause.convert_convert, subset_refl]
 
-  have idea : (ρ_true.toClause).convert vars trick₁ = ({x.negate} : Clause vars):= by
-    exact trivial_subs_unfold x ρ_true h_value trick₁
-
-  rw[<-idea]
-
-  unfold BotClause
-
-  unfold Clause.combine
-  simp
-  unfold Clause.convert_trivial
-  aesop
 
 --lemma local_convertion
 
