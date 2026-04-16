@@ -531,31 +531,21 @@ lemma width_respect_convert (vars₁ vars₂) (φ : CNFFormula vars₁)
 
 
 
--- This lemma was partially vibe-coded
-
-lemma substitute_second_trivial_property {vars}
-    (φ : CNFFormula vars)
-    (x : Literal vars)
-    (C_0 : Clause vars)
-    (h_subs : (vars \ {x.variable}) ⊆ vars)
-    (ρ_false : (Assignment ({x.variable} : Finset Variable)))
-    (h_value_false : ρ_false = (fun _ _ => (¬x.polarity : Bool)))
-    (h_c : C_0 ∈ ((CNFFormula.simple_convert
-        (vars \ {x.variable}) vars (φ.substitute ρ_false) h_subs)))
-    (C_1 : Clause (vars \ {x.variable}))
-    (h_C_1_conv_left : C_1 ∈ (φ.substitute ρ_false))
-    (h_incl : ∀ l ∈ C_1, l.variable ∈ vars)
-    (h_C_1_conv_right : C_1.convert vars h_incl = C_0)
-    (C_2 : Clause vars)
-    (h_C_2_conv : C_2 ∈ φ ∧ C_2.substitute ρ_false = some C_1)
-    : C_0 ⊆ C_2 := by
-  have : C_0 =
-    ((C_2.substitute (fun _ _ => ¬x.polarity : Assignment {x.variable})).get (by aesop)).convert
-      vars (by
-        intro t
-        have := Literal.variable_mem_vars t
-        aesop) := by grind
-  aesop
+private lemma clause_substitute_convert_subset {vars sub_vars}
+    {ρ : Assignment sub_vars} {C : Clause vars} {C' : Clause (vars \ sub_vars)}
+    (h_sub : C.substitute ρ = some C') (h_incl : ∀ l ∈ C', l.variable ∈ vars) :
+    C'.convert vars h_incl ⊆ C := by
+  intro m hm
+  simp only [Clause.convert, Finset.mem_filterMap] at hm
+  obtain ⟨l', hl'_in, hl'_eq⟩ := hm
+  simp only [dif_pos hl'_in, Option.some.injEq] at hl'_eq
+  subst hl'_eq
+  have h_preimage : ∃ l ∈ C, l.variable = l'.variable ∧ l.polarity = l'.polarity := by
+    have hl'_in_sub : l' ∈ (C.substitute ρ).get (by simp [h_sub]) := by simp [h_sub, hl'_in]
+    aesop (add safe unfold [Clause.substitute, Clause.split, Clause.shrink, Literal.restrict])
+  obtain ⟨l, hl_mem, hl_var, hl_pol⟩ := h_preimage
+  convert hl_mem using 1
+  apply Literal.ext <;> simp [Literal.convert, hl_var, hl_pol]
 
 lemma var_mem_of_literal_mem {v_set} (l : Literal v_set) :
     l.variable ∈ v_set := Literal.variable_mem_vars l
@@ -687,9 +677,8 @@ lemma width_combine (vars) {φ : CNFFormula vars}
             h_C_1_conv_left (fun l a ↦ fact₁ C_1 l a) h_C_1_conv_right C_2 h_C_2_conv
 
       have this_1 : C_0 ⊆ C_2 := by
-          exact
-          substitute_second_trivial_property φ x C_0 h_subs ρ_false h_value_false h_c C_1
-            h_C_1_conv_left (fun l a ↦ fact₁ C_1 l a) h_C_1_conv_right C_2 h_C_2_conv
+        rw [← h_C_1_conv_right]
+        exact clause_substitute_convert_subset h_C_2_conv.right (fun l a ↦ fact₁ C_1 l a)
 
       obtain ⟨left, right⟩ := h_C_2_conv
 
