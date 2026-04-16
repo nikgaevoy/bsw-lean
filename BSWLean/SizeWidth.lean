@@ -281,23 +281,19 @@ lemma induction_step_width_incr {vars sub_vars} {φ : CNFFormula vars} {var : Va
     · exact resolve_ineq vars sub_vars φ var ρ c_1 c_2 c_3 h_subset h_4 h_0 p_1 p_2 left right
     · constructor
       · trans p_1.width + Finset.card sub_vars
-        swap
+        · trans (p_1.unsubstitute ρ h_subset).width
+          · unfold TreeLikeResolution.unsubstitute at heq
+            grind only [Finset.union_singleton, le_refl]
+          · exact h_2
         · simp
-        trans (p_1.unsubstitute ρ h_subset).width
-        swap
-        · exact h_2
-        unfold TreeLikeResolution.unsubstitute at heq
-        grind only [Finset.union_singleton, le_refl]
-
 
       · trans p_2.width + Finset.card sub_vars
-        swap
+        · trans (p_2.unsubstitute ρ h_subset).width
+          · unfold TreeLikeResolution.unsubstitute at heq
+            grind only [Finset.union_singleton, le_refl]
+          · exact h_3
         · simp
-        trans (p_2.unsubstitute ρ h_subset).width
-        swap
-        · exact h_3
-        unfold TreeLikeResolution.unsubstitute at heq
-        grind only [Finset.union_singleton, le_refl]
+
 
 
 
@@ -405,14 +401,23 @@ lemma ufold_one_literal {vars} {φ : CNFFormula vars}
 
 --lemma local_convertion
 
+lemma single_literal_conversion {vars₁ vars₂ : Variables} {lit : Literal vars₁}
+    {v_new_mem : lit.variable ∈ vars₂} {h} :
+    ({lit} : Clause vars₁).convert vars₂ h
+      = ({ ⟨⟨lit.variable, v_new_mem⟩, lit.polarity⟩ } : Clause vars₂) := by
+  unfold Clause.convert
+  aesop
+
+
+
 def convert_proof (W : ℕ) {vars₁ vars₂ : Variables} {φ : CNFFormula vars₁} {C : Clause vars₁}
-  {φ₁ : CNFFormula vars₂} (h_subs : vars₁ ⊆ vars₂)
-  (h_conv : (CNFFormula.simple_convert vars₁ vars₂ φ h_subs) = φ₁)
-  (π₁ : TreeLikeResolution φ C)
-  (h_width : π₁.width ≤ W) :
-  { π₂ : TreeLikeResolution φ₁
-  (C.convert vars₂ (by exact fun l a ↦
-    subset_of_vars_clause vars₁ vars₂ C h_subs l a)) // π₂.width ≤ W } :=
+    {φ₁ : CNFFormula vars₂} (h_subs : vars₁ ⊆ vars₂)
+    (h_conv : (CNFFormula.simple_convert vars₁ vars₂ φ h_subs) = φ₁)
+    (π₁ : TreeLikeResolution φ C)
+    (h_width : π₁.width ≤ W) :
+    { π₂ : TreeLikeResolution φ₁
+    (C.convert vars₂ (by exact fun l a ↦
+      subset_of_vars_clause vars₁ vars₂ C h_subs l a)) // π₂.width ≤ W } :=
 
   have idea : ∀ c : Clause vars₁, (∀ l ∈ c, l.variable ∈ vars₂) := by
     aesop
@@ -475,40 +480,28 @@ def convert_proof (W : ℕ) {vars₁ vars₂ : Variables} {φ : CNFFormula vars�
       have fact₀ :  ∀ l ∈ C, l.variable ∈ vars₂ := by
         aesop
 
-      have left : c₁ ⊆ C ∪ {v.toLiteral h_v_mem} := by
-        grind
-
-      have right : c₂ ⊆ C ∪ {v.toNegLiteral h_v_mem} := by
-        grind
-
       have h_resolve : c₁.convert vars₂ fact₁ ⊆ C.convert vars₂ fact₀ ∪ {v.toLiteral v_new_mem} ∧
         c₂.convert vars₂ fact₂ ⊆ C.convert vars₂ fact₀ ∪ {v.toNegLiteral v_new_mem} := by
 
 
         constructor
 
-        · clear idea fact₂ right h_v_not h_width
-            idea₁ idea₂ h_res idea' h_conv π_a_new π_a π_b h_wa π_b_new h_wb π₁ φ φ₁ c₂
+        · clear idea fact₂ h_v_not h_width
+            idea₁ idea₂ idea' h_conv π_a_new π_a π_b h_wa π_b_new h_wb π₁ φ φ₁
 
           trans (C ∪ ({v.toLiteral h_v_mem} : Clause vars₁)).convert vars₂ (by aesop)
           · grind only [loose_convert]
-          · have new₂ : ({v.toLiteral h_v_mem} : Clause vars₁).convert vars₂ (by aesop) =
-                {v.toLiteral v_new_mem} := by
-              unfold Clause.convert
-              aesop
-            grind only [carry_through_convert, Finset.subset_of_eq, loose_convert]
+          · grind [single_literal_conversion,
+              carry_through_convert, Finset.subset_of_eq, loose_convert]
 
 
-        · clear idea left h_v_not h_width fact₁
-            idea₁ idea₂ h_res idea' h_conv π_a_new π_a π_b h_wa π_b_new h_wb π₁ φ φ₁ c₁
+        · clear idea h_v_not h_width fact₁
+            idea₁ idea₂ idea' h_conv π_a_new π_a π_b h_wa π_b_new h_wb π₁ φ φ₁
 
           trans (C ∪ ({v.toNegLiteral h_v_mem} : Clause vars₁)).convert vars₂ (by aesop)
           · grind only [loose_convert]
-          have new₂ : ({v.toNegLiteral h_v_mem} : Clause vars₁).convert vars₂ (by aesop) =
-              {v.toNegLiteral v_new_mem} := by
-            unfold Clause.convert
-            aesop
-          grind only [carry_through_convert, Finset.subset_of_eq, loose_convert]
+          · grind [single_literal_conversion,
+              carry_through_convert, Finset.subset_of_eq, loose_convert]
 
 
       -- 3. Construct the new resolution node
@@ -868,6 +861,26 @@ lemma var_incl {vars} (v : Variable) (C : Clause vars) (h_v_in_vars : v ∈ vars
 
 
 
+/-!
+Claude wrote this lemma
+-/
+private lemma width_ind_combine
+    {s : Finset Variable} {W W_c : ℕ} (hW : 0 < W)
+    {φ : CNFFormula s}
+    (h_clause_card : ∀ C ∈ φ, C.card ≤ W_c)
+    (lit : Literal s)
+    {ρ_A ρ_B : Assignment ({lit.variable} : Finset Variable)}
+    (h_lit_A : ρ_A = (fun _ _ => (lit.polarity : Bool)))
+    (h_lit_B : ρ_B = (fun _ _ => (¬lit.polarity : Bool)))
+    (π_A' : TreeLikeRefutation (φ.substitute ρ_A))
+    (h_A_width : π_A'.width ≤ (W - 1) + W_c)
+    (π_B' : TreeLikeRefutation (φ.substitute ρ_B))
+    (h_B_width : π_B'.width ≤ W + W_c) :
+    ∃ (π' : TreeLikeRefutation φ), π'.width ≤ W + W_c - 1 + 1 :=
+  width_combine s lit (Literal.variable_mem_vars lit)
+    ρ_A h_lit_A ρ_B h_lit_B (W + W_c - 1)
+    π_A' (by omega) π_B' (by omega)
+    (fun C hC => (h_clause_card C hC).trans (by omega))
 
 theorem width_imply_size_ind_version (W : ℕ)
     (W_c : ℕ) :
@@ -1120,101 +1133,41 @@ theorem width_imply_size_ind_version (W : ℕ)
 
           cases idea₁ with
           | inr h_size₁ =>
-              -- Case 1: π₁.size ≤ 2^(W - W_c - 1)
-              -- Your hypothesis here is named h_size₁
-              have idea_0 : π_1.size ≤ 2 ^ (W - 1) := by
-                grind
-
-              have ineq₁ : W - 1 < W := by
-                grind
-
-
-
+              have idea_0 : π_1.size ≤ 2 ^ (W - 1) := by grind
+              have ineq₁ : W - 1 < W := by grind
               have ih_1 := ih_0 (W - 1) ineq₁
                 (s \ {v}) (φ.substitute ρ_true) h_clause_subs_width_true π_1 idea_0
-
               obtain ⟨π_1', idea_00'⟩ := ih_1
-
-              have idea_00 : TreeLikeResolution.width π_1' ≤ W + W_c - 1 := by
-                omega
-
               have idea_10 : π_2.size ≤ 2^(W) := by
                 trans π₁.size
                 · exact h_π_2
                 · exact h_gen_size_lb.left
-
-              have : smaller_set = s \ {v} := by
-                exact Finset.erase_eq s v
-
+              have : smaller_set = s \ {v} := Finset.erase_eq s v
               rw[this] at ih'
-
               have ih'_1 := ih' (φ.substitute ρ_false) h_clause_subs_width_false π_2 idea_10
-
               obtain ⟨π_2', idea_11⟩ := ih'_1
-
-
-
-              have final_idea : ∃ (π' : TreeLikeRefutation φ),
-                  TreeLikeResolution.width π' ≤ W + W_c - 1 + 1 := by
-                apply width_combine s (v.toLiteral h_v_incl) h_v_incl ρ_true rfl ρ_false rfl
-                  (W + W_c - 1) π_1' idea_00 π_2' (by grind)
-                intro C''
-                intro h_C''
-                trans W + W_c
-                · grind
-                · omega
-              obtain ⟨π_final, conclusion⟩ := final_idea
-
+              obtain ⟨π_final, conclusion⟩ :=
+                width_ind_combine (by omega) h_clause_card (v.toLiteral h_v_incl) rfl rfl π_1' idea_00' π_2' idea_11
               use π_final
               grind
 
 
           | inl h_size₂ =>
-              -- Case 1: π₁.size ≤ 2^(W - W_c - 1)
-              -- Your hypothesis here is named h_size₁
-              have idea_0 : π_2.size ≤ 2 ^ (W - 1) := by
-                grind
-
-              have ineq₁ : W - 1 < W := by
-                grind
-
-
-
+              have idea_0 : π_2.size ≤ 2 ^ (W - 1) := by grind
+              have ineq₁ : W - 1 < W := by grind
               have ih_1 := ih_0 (W - 1) ineq₁
                 (s \ {v}) (φ.substitute ρ_false) h_clause_subs_width_false π_2 idea_0
-
               obtain ⟨π_2', idea_00'⟩ := ih_1
-
-              have idea_00 : TreeLikeResolution.width π_2' ≤ W + W_c - 1 := by
-                omega
-
               have idea_10 : π_1.size ≤ 2^(W) := by
                 trans π₂.size
                 · exact h_π_1
                 · exact h_gen_size_lb.right
-
-              have : smaller_set = s \ {v} := by
-                exact Finset.erase_eq s v
-
+              have : smaller_set = s \ {v} := Finset.erase_eq s v
               rw[this] at ih'
-
               have ih'_1 := ih' (φ.substitute ρ_true) h_clause_subs_width_true π_1 idea_10
-
               obtain ⟨π_1', idea_11⟩ := ih'_1
-
-
-
-              have final_idea : ∃ (π' : TreeLikeRefutation φ),
-                  TreeLikeResolution.width π' ≤ W + W_c - 1 + 1 := by
-                apply width_combine s (v.toNegLiteral h_v_incl) h_v_incl ρ_false rfl ρ_true rfl
-                  (W + W_c - 1) π_2' idea_00 π_1' (by grind)
-                intro C''
-                intro h_C''
-                trans W + W_c
-                · grind
-                · omega
-              obtain ⟨π_final, conclusion⟩ := final_idea
-
+              obtain ⟨π_final, conclusion⟩ :=
+                width_ind_combine (by omega) h_clause_card (v.toNegLiteral h_v_incl) rfl rfl π_2' idea_00' π_1' idea_11
               use π_final
               grind
 
