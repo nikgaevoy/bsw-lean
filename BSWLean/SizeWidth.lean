@@ -133,20 +133,6 @@ lemma carry_through_convert {vars₁ vars₂} (c₁ c₂ : Clause vars₁) {h₁
   aesop
 
 @[simp]
-lemma carry_through_convert₂ {vars₁ vars₂} (c₁ c₂ : Clause vars₁) {h₁ h₂ h₃} :
-    ((c₁ ∪ c₂).convert vars₂ h₁) =
-    (c₁.convert vars₂ h₂) ∪ (c₂.convert vars₂ h₃) := by
-  unfold Clause.convert
-  aesop
-
-@[simp]
-lemma carry_through_convert_expl (vars₁ vars₂) (c₁ c₂ : Clause vars₁) (h₁ h₂ h₃) :
-    ((c₁ ∪ c₂).convert vars₂ h₁) =
-    (c₁.convert vars₂ h₂) ∪ (c₂.convert vars₂ h₃) := by
-  unfold Clause.convert
-  aesop
-
-@[simp]
 lemma carry_through_convert_expl_lit (vars₁ vars₂) (c₁ : Clause vars₁)
     (l : Literal vars₁) (h₁ h₂ h₃) :
     ((c₁ ∪ {l}).convert vars₂ h₁) =
@@ -625,8 +611,7 @@ def convert_proof (W : ℕ) {vars₁ vars₂ : Variables} {φ : CNFFormula vars�
           trans C.convert vars₂ fact₀ ∪ ({v.toLiteral h_v_mem} : Clause vars₁).convert vars₂ incl₂
           · have new₁ : (C ∪ {v.toLiteral h_v_mem}).convert vars₂ incl₁ = C.convert vars₂ fact₀ ∪
                 ({v.toLiteral h_v_mem} : Clause vars₁).convert vars₂ incl₂ := by
-              exact carry_through_convert_expl vars₁ vars₂ C ({v.toLiteral h_v_mem} : Clause vars₁)
-                incl₁ fact₀ incl₂
+              exact carry_through_convert C ({v.toLiteral h_v_mem} : Clause vars₁)
             exact Finset.subset_of_eq new₁
           · have new₂ : ({v.toLiteral h_v_mem} : Clause vars₁).convert vars₂ incl₂ =
                 {v.toLiteral v_new_mem} := by
@@ -644,8 +629,7 @@ def convert_proof (W : ℕ) {vars₁ vars₂ : Variables} {φ : CNFFormula vars�
         trans C.convert vars₂ fact₀ ∪ ({v.toNegLiteral h_v_mem} : Clause vars₁).convert vars₂ incl₂
         · have new₁ : (C ∪ {v.toNegLiteral h_v_mem}).convert vars₂ incl₁ = C.convert vars₂ fact₀ ∪
               ({v.toNegLiteral h_v_mem} : Clause vars₁).convert vars₂ incl₂ := by
-            exact carry_through_convert_expl vars₁ vars₂ C
-              ({v.toNegLiteral h_v_mem} : Clause vars₁) incl₁ fact₀  incl₂
+            exact carry_through_convert C ({v.toNegLiteral h_v_mem} : Clause vars₁)
           subst h_conv
           simp_all only [Clause.convert_keeps_variables, not_false_eq_true, Finset.union_singleton,
             subset_refl]
