@@ -1017,10 +1017,10 @@ lemma var_incl {vars} (v : Variable) (C : Clause vars) (h_v_in_vars : v ∈ vars
     grind
 
 
+
+
 theorem width_imply_size_ind_version (W : ℕ)
     (W_c : ℕ) :
-    --(h_ineq : W > W_c) :
-    --(h_size : π.size ≤ 2 ^ (W - W_c)) :
     ∀ (vars) (φ : CNFFormula vars) (_ : ∀ C ∈ φ, C.card ≤ W_c) (π : TreeLikeRefutation φ),
       π.size ≤ 2 ^ (W) →
       ∃ (π' : TreeLikeRefutation φ), π'.width ≤ W + W_c:= by
@@ -1367,3 +1367,11 @@ theorem width_imply_size_ind_version (W : ℕ)
 
               use π_final
               grind
+
+theorem width_imply_size (W : ℕ) (W_c : ℕ)
+    (vars) (φ : CNFFormula vars)
+    (h_W_c : ∀ C ∈ φ, C.card ≤ W_c)
+    (π : TreeLikeRefutation φ)
+    (h_size : π.size ≤ 2 ^ W) :
+    ∃ (π' : TreeLikeRefutation φ), π'.width ≤ W + W_c := by
+    exact width_imply_size_ind_version W W_c vars φ h_W_c π h_size
