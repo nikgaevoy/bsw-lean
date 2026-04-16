@@ -132,14 +132,6 @@ lemma carry_through_convert {vars₁ vars₂} (c₁ c₂ : Clause vars₁) {h₁
   unfold Clause.convert
   aesop
 
-@[simp]
-lemma carry_through_convert_expl_lit (vars₁ vars₂) (c₁ : Clause vars₁)
-    (l : Literal vars₁) (h₁ h₂ h₃) :
-    ((c₁ ∪ {l}).convert vars₂ h₁) =
-    (c₁.convert vars₂ h₂) ∪ {(l.convert vars₂ h₃)} := by
-  unfold Clause.convert
-  aesop
-
 
 @[simp]
 lemma carry_through_convert_trivial {vars₁ vars₂} (c₁ c₂ : Clause vars₁) {h₁ h₂} :
@@ -191,8 +183,8 @@ lemma inter_idea_new_version (vars sub_vars) (lit : Literal (vars \ sub_vars))
   have fact₂ : ∀ l ∈ c_2, l.variable ∈ vars := by
     exact fun l a ↦
       subset_of_vars_clause (vars \ sub_vars) vars (c_1 ∪ {lit}) fact₁ l (left a)
-  have fact₃ : ∀ l ∈ c_1, l.variable ∈ vars := by
-    exact fun l a ↦ subset_of_vars_clause (vars \ sub_vars) vars c_1 fact₁ l a
+  -- have fact₃ : ∀ l ∈ c_1, l.variable ∈ vars := by
+  --   exact fun l a ↦ subset_of_vars_clause (vars \ sub_vars) vars c_1 fact₁ l a
   have fact₄ : ∀ l ∈ (c_1 ∪ {lit}), l.variable ∈ vars := by
     exact fun l a ↦
       subset_of_vars_clause (vars \ sub_vars) vars (c_1 ∪ {lit}) fact₁ l a
@@ -200,19 +192,15 @@ lemma inter_idea_new_version (vars sub_vars) (lit : Literal (vars \ sub_vars))
     exact fun l a ↦
       subset_of_vars_clause (vars \ sub_vars) (vars \ sub_vars) (c_1 ∪ {lit})
         (fun ⦃a⦄ a_1 ↦ a_1) l a
-  have fact₅ : (lit).variable ∈ vars := by
-    aesop
+  -- have fact₅ : (lit).variable ∈ vars := by
+  --   aesop
   trans c_2.convert vars fact₂
   · aesop
   trans ((c_1 ∪ {lit}).convert vars fact₄)
   · aesop
-  have final_idea : ((lit).convert vars fact₅) = lit.convert vars var_incl := by
-    aesop
-  trans (c_1.convert  vars fact₃) ∪ {lit.convert vars var_incl}
-  · trans (c_1.convert  vars fact₃) ∪ {((lit).convert vars fact₅)}
-    · refine Finset.subset_of_eq ?_
-      exact carry_through_convert_expl_lit (vars \ sub_vars) vars c_1 (lit) fact₄ fact₃ (by aesop)
-    · aesop
+  trans (c_1.convert vars (by grind)) ∪ {lit.convert vars var_incl}
+  · refine Finset.subset_of_eq ?_
+    rw [carry_through_convert, ← this]
   · aesop
 
 
