@@ -2,6 +2,8 @@ import BSWLean.Treelike
 import BSWLean.TinyConversions
 import Mathlib.Data.Finset.Basic
 
+
+
 lemma lit_subst_is_Bot_false {vars}
     (l : Literal vars)
     (ρ_false : (Assignment ({l.variable} : Finset Variable)))
@@ -159,17 +161,12 @@ lemma inter_idea_new_version (vars sub_vars) (lit : Literal (vars \ sub_vars))
     ((Clause.combine c_2 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars inter_proof) ⊆
     ((Clause.combine c_1 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars inter_proof) ∪
       {lit.convert vars var_incl} := by
-  have h_subset : sub_vars ⊆ vars := by aesop
+
   have : Clause.convert {lit} vars
       (by intro l h_l; have q := Literal.variable_mem_vars l; aesop) =
       {lit.convert vars var_incl} := by
-    unfold Clause.convert
-    simp only [Finset.mem_singleton]
-    aesop
+    grind [Clause.convert]
   rw [←this]
-  have fact : (Finset.disjUnion (vars \ sub_vars) sub_vars
-      (Finset.sdiff_disjoint : Disjoint (vars \ sub_vars) sub_vars)) = vars := by
-    aesop
   unfold Clause.combine
   unfold Clause.convert_trivial
   simp only [carry_through_convert, Finset.union_assoc]
@@ -179,28 +176,10 @@ lemma inter_idea_new_version (vars sub_vars) (lit : Literal (vars \ sub_vars))
   rw [←Finset.union_assoc]
   apply remove_middle_subset
   rw [this]
-  have fact₁ : (vars \ sub_vars) ⊆ vars := by aesop
-  have fact₂ : ∀ l ∈ c_2, l.variable ∈ vars := by
-    exact fun l a ↦
-      subset_of_vars_clause (vars \ sub_vars) vars (c_1 ∪ {lit}) fact₁ l (left a)
-  -- have fact₃ : ∀ l ∈ c_1, l.variable ∈ vars := by
-  --   exact fun l a ↦ subset_of_vars_clause (vars \ sub_vars) vars c_1 fact₁ l a
-  have fact₄ : ∀ l ∈ (c_1 ∪ {lit}), l.variable ∈ vars := by
-    exact fun l a ↦
-      subset_of_vars_clause (vars \ sub_vars) vars (c_1 ∪ {lit}) fact₁ l a
-  have fact₅ : ∀ l ∈ (c_1 ∪ {lit}), l.variable ∈ (vars \ sub_vars) := by
-    exact fun l a ↦
-      subset_of_vars_clause (vars \ sub_vars) (vars \ sub_vars) (c_1 ∪ {lit})
-        (fun ⦃a⦄ a_1 ↦ a_1) l a
-  -- have fact₅ : (lit).variable ∈ vars := by
-  --   aesop
-  trans c_2.convert vars fact₂
-  · aesop
-  trans ((c_1 ∪ {lit}).convert vars fact₄)
+  trans ((c_1 ∪ {lit}).convert vars (by grind [subset_of_vars_clause]))
   · aesop
   trans (c_1.convert vars (by grind)) ∪ {lit.convert vars var_incl}
-  · refine Finset.subset_of_eq ?_
-    rw [carry_through_convert, ← this]
+  · grind [carry_through_convert]
   · aesop
 
 
@@ -243,11 +222,8 @@ lemma resolve_ineq (vars sub_vars) (φ : CNFFormula vars) (var : Variable)
       (((Clause.combine c_2 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars
         inter_proof).resolve ((Clause.combine c_3 ρ.toClause Finset.sdiff_disjoint).convert_trivial
           vars inter_proof) var (Finset.sdiff_subset h_4 : var ∈ vars)) := by
-      exact
-        resolve_subsets var vars (p_1.unsubstitute_rhs ρ) (p_2.unsubstitute_rhs ρ)
-          ((c_2.combine ρ.toClause Finset.sdiff_disjoint).convert_trivial vars inter_proof)
-          ((c_3.combine ρ.toClause Finset.sdiff_disjoint).convert_trivial vars inter_proof)
-          (Finset.sdiff_subset h_4) idea₁ idea₂
+      grind [resolve_subsets]
+
 
     exact Finset.card_le_card inter_idea
   trans Finset.card c_1 + Finset.card sub_vars
@@ -257,9 +233,6 @@ lemma resolve_ineq (vars sub_vars) (φ : CNFFormula vars) (var : Variable)
     inter_proof)
   swap
   · exact card_combination c_1
-  have temp₁ : Finset.disjUnion (vars \ sub_vars) sub_vars
-      (Finset.sdiff_disjoint : Disjoint (vars \ sub_vars) sub_vars) = vars := by
-    aesop
 
   have idea₃ :
       ((Clause.combine c_2 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars inter_proof) ⊆
@@ -276,11 +249,10 @@ lemma resolve_ineq (vars sub_vars) (φ : CNFFormula vars) (var : Variable)
       var_incl right
 
   simp only [ge_iff_le]
-
-  apply resolve_subsets_trick var vars
-    ((Clause.combine c_1 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars temp₁)
-    ((Clause.combine c_2 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars temp₁)
-    ((Clause.combine c_3 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars temp₁)
+  exact resolve_subsets_trick var vars
+    ((Clause.combine c_1 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars (by aesop))
+    ((Clause.combine c_2 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars (by aesop))
+    ((Clause.combine c_3 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars (by aesop))
     (by grind) idea₃ idea₄
 
 
@@ -405,11 +377,7 @@ lemma var_unsub_increase_width {vars} {φ : CNFFormula vars}
     (ρ : Assignment {x.variable}) (c : Clause (vars \ {x.variable}))
     (π : TreeLikeResolution (φ.substitute ρ) c) :
     (π.unsubstitute ρ (by exact Finset.singleton_subset_iff.mpr h₀)).width ≤ π.width + 1 := by
-  have : {x.variable} ⊆ vars := by
-    exact Finset.singleton_subset_iff.mpr h₀
-  trans π.width + ({x.variable} : Finset Variable).card
-  · exact unsub_increase_width c π (Finset.singleton_subset_iff.mpr h₀)
-  · exact Nat.le_refl (π.width + ({x.variable} : Finset Variable).card)
+  simpa [Finset.card_singleton] using unsub_increase_width c π (Finset.singleton_subset_iff.mpr h₀)
 
 -- Managed to vibe code it succesfully!
 
@@ -521,8 +489,7 @@ def convert_proof (W : ℕ) {vars₁ vars₂ : Variables} {φ : CNFFormula vars�
 
   have idea' : Finset.card C ≤ W := by
     induction π₁
-    · subst h_conv
-      exact h_width
+    · aesop
     rename_i h_resolve π₁_ih π₂_ih
     subst h_conv
     obtain ⟨left, right⟩ := h_resolve
@@ -537,10 +504,8 @@ def convert_proof (W : ℕ) {vars₁ vars₂ : Variables} {φ : CNFFormula vars�
           rw[<-h_conv]
           unfold CNFFormula.simple_convert
           aesop
-        let π₂ := TreeLikeResolution.axiom_clause (by
-        -- Prove that C_new is in the converted formula
-        -- This follows from the definition of CNFFormula.simple_convert
-          exact this)
+        let π₂ := TreeLikeResolution.axiom_clause (by aesop)
+
         ⟨π₂, by
         -- Width of an axiom is the size of the clause.
         -- Since convert doesn't change the number of literals, width remains the same.
@@ -570,29 +535,32 @@ def convert_proof (W : ℕ) {vars₁ vars₂ : Variables} {φ : CNFFormula vars�
       let v_new_mem := h_subs h_v_mem
 
       have fact₁ : ∀ l ∈ c₁, l.variable ∈ vars₂ := by
-        exact fun l a ↦ idea c₁ l a
+        aesop
 
       have fact₂ : ∀ l ∈ c₂, l.variable ∈ vars₂ := by
-        exact fun l a ↦ idea c₂ l a
+        aesop
 
       have fact₀ :  ∀ l ∈ C, l.variable ∈ vars₂ := by
-        exact fun l a ↦ idea C l a
+        aesop
 
       have fact₄ : v ∉ (C.convert vars₂ fact₀).variables := by
         aesop
 
       have left : c₁ ⊆ C ∪ {v.toLiteral h_v_mem} := by
-        exact h_res.left
+        grind
 
       have right : c₂ ⊆ C ∪ {v.toNegLiteral h_v_mem} := by
-        exact h_res.right
+        grind
 
       have h_resolve : c₁.convert vars₂ fact₁ ⊆ C.convert vars₂ fact₀ ∪ {v.toLiteral v_new_mem} ∧
         c₂.convert vars₂ fact₂ ⊆ C.convert vars₂ fact₀ ∪ {v.toNegLiteral v_new_mem} := by
+        
         have incl₁ : ∀ l ∈ C ∪ {v.toLiteral h_v_mem}, l.variable ∈ vars₂ := by
-          exact fun l a ↦ idea (C ∪ {v.toLiteral h_v_mem}) l a
+          aesop
+
         have incl₂ : ∀ l ∈ ({v.toLiteral h_v_mem} : Clause vars₁), l.variable ∈ vars₂ := by
-          exact fun l a ↦ idea {v.toLiteral h_v_mem} l a
+          aesop
+
         constructor
         · trans (C ∪ ({v.toLiteral h_v_mem} : Clause vars₁)).convert vars₂ incl₁
           · exact loose_convert c₁ (C ∪ {v.toLiteral h_v_mem}) left
@@ -609,9 +577,9 @@ def convert_proof (W : ℕ) {vars₁ vars₂ : Variables} {φ : CNFFormula vars�
             rw [new₂]
 
         have incl₁ : ∀ l ∈ C ∪ {v.toNegLiteral h_v_mem}, l.variable ∈ vars₂ := by
-          exact fun l a ↦ idea (C ∪ {v.toNegLiteral h_v_mem}) l a
+          aesop
         have incl₂ : ∀ l ∈ ({v.toNegLiteral h_v_mem} : Clause vars₁), l.variable ∈ vars₂ := by
-          exact fun l a ↦ idea {v.toNegLiteral h_v_mem} l a
+          aesop
         trans (C ∪ ({v.toNegLiteral h_v_mem} : Clause vars₁)).convert vars₂ incl₁
         · exact loose_convert c₂ (C ∪ {v.toNegLiteral h_v_mem}) right
         trans C.convert vars₂ fact₀ ∪ ({v.toNegLiteral h_v_mem} : Clause vars₁).convert vars₂ incl₂
@@ -696,6 +664,10 @@ private lemma clause_card_substitute_le {vars sub_vars} {φ : CNFFormula vars}
   simp [h_A_sub] at h_le
   exact h_le.trans (h_clause_card A h_A_in)
 
+/-!
+Key lemma used to prove size-width relation. Corresponds to Lemma 3.2 from Ben-Sasson Wigderson
+-/
+
 lemma width_combine (vars) {φ : CNFFormula vars}
     (x : Literal vars) (h₀ : x.variable ∈ vars)
     (ρ_true : (Assignment ({x.variable} : Finset Variable)))
@@ -707,30 +679,18 @@ lemma width_combine (vars) {φ : CNFFormula vars}
     (h_clause_card : ∀ C ∈ φ, C.card ≤ W + 1) :
     ∃ (π' : TreeLikeRefutation φ), π'.width ≤ W + 1 := by
 
-  have fact₀ : {x.variable} ⊆ vars := by
-    exact Finset.singleton_subset_iff.mpr h₀
 
-  let π_1_unfolded := TreeLikeResolution.unsubstitute ρ_true π_1 fact₀
+  let π_1_unfolded := TreeLikeResolution.unsubstitute ρ_true π_1 (by aesop)
 
   have idea₀ : (TreeLikeResolution.unsubstitute_rhs ρ_true π_1) ⊆ ({x.negate}) := by
-    exact ufold_one_literal x h₀ ρ_true h_value π_1 fact₀
+    exact ufold_one_literal x h₀ ρ_true h_value π_1 (by aesop)
 
 
   have idea₁ : π_1_unfolded.width ≤ W + 1 := by
-    trans π_1.width + ({x.variable} : Finset Variable).card
-    · exact unsub_increase_width (BotClause (vars \ {x.variable})) π_1 fact₀
-    trans TreeLikeResolution.width π_1 + 1
-    · exact Nat.le_refl (TreeLikeResolution.width π_1 + ({x.variable} : Finset Variable).card)
-    · exact Nat.add_le_add_right h_width_true 1
-
-
+    grind [unsub_increase_width]
 
   have fact₁ : (C : Clause (vars \ {x.variable})) -> (∀ l ∈ C, l.variable ∈ vars) := by
-    intro C l h'
-    have : l.variable ∈ (vars \ {x.variable}) := by
-      exact subset_of_vars_clause (vars \ {x.variable}) (vars \ {x.variable}) C
-        (fun ⦃a⦄ a_1 ↦ a_1) l h'
-    simp_all only [Literal.variable_mem_vars, Finset.mem_sdiff, Finset.mem_singleton, π_1_unfolded]
+    grind
 
 
   let vars₁ := (vars \ {x.variable})
@@ -753,10 +713,6 @@ lemma width_combine (vars) {φ : CNFFormula vars}
   have h_cases := Finset.subset_singleton_iff.mp idea₀
   rcases h_cases with h_empty | h_eq
   · -- Case 1: The set is empty
-  -- h_empty : TreeLikeResolution.unsubstitute_rhs ... = ∅
-    -- cast(by rw [h_empty] at π_1_unfolded)
-    -- let answ :  TreeLikeRefutation φ := π_1_unfolded
-    -- use answ
     -- 1. Transport the proof A along the equality h_1
     let π_refutation : TreeLikeRefutation φ := cast (by rw [h_empty]) π_1_unfolded
     -- 2. Prove that the width is preserved
@@ -768,17 +724,16 @@ lemma width_combine (vars) {φ : CNFFormula vars}
       subst h_value
       grind
 
-
   -- 3. Package it into the existential
     exact ⟨π_refutation, h_width⟩
 
   · -- Case 2: The set is the singleton
-  -- h_eq : TreeLikeResolution.unsubstitute_rhs ... = {x.negate}
+
     have idea₂ : ∀ C ∈ φ_subs_false_conv, ∃ (π : TreeLikeResolution φ C), π.width ≤ W + 1 := by
 
       intro C_0 h_c
       have entry₁ : ∃ C_1 ∈ φ_subs_false_unconv,
-          (C_1.convert vars (by exact fun l a ↦ fact₁ C_1 l a)) = C_0 := by
+          (C_1.convert vars (by exact fun l a ↦ (fact₁) C_1 l a)) = C_0 := by
         -- unfold φ_subs_false_unconv
         -- unfold φ_subs_false_conv at h_c
         unfold φ_subs_false_conv CNFFormula.simple_convert at h_c
@@ -830,8 +785,7 @@ lemma width_combine (vars) {φ : CNFFormula vars}
             h_C_1_conv_left (fun l a ↦ fact₁ C_1 l a) h_C_1_conv_right C_2 h_C_2_conv
 
       obtain ⟨left, right⟩ := h_C_2_conv
-      -- have idea₃ : (C_0 = C_2 \ ({x} : Clause vars)) := by
-      --   sorry
+
 
       have h_v_not_mem_c : x.variable ∉ C_0.variables := by
         have h_prep : x.variable ∉ C_1.variables := by
@@ -840,15 +794,7 @@ lemma width_combine (vars) {φ : CNFFormula vars}
           have h_in := var_mem_of_literal_mem l
           rw [hl_eq] at h_in
           simp at h_in
-        subst h_value h_value_false h_C_1_conv_right
-        simp_all
-
-
-      have temp_fix₁ : x.variable ∈ vars := by
-        subst h_value h_value_false h_C_1_conv_right
-        simp_all only [Literal.variable_mem_vars, subset_refl, Bool.not_eq_true,
-          Bool.decide_eq_false, Finset.union_singleton, Clause.convert_keeps_variables,
-          π_1_unfolded, φ_subs_false_unconv, φ_subs_false_conv, vars₁]
+        aesop
 
 
       let π_new : TreeLikeResolution φ {x.negate} := h_eq ▸ π_1_unfolded
@@ -862,12 +808,12 @@ lemma width_combine (vars) {φ : CNFFormula vars}
         have h_val : v ∈ vars := by aesop
 
         let π_ans : TreeLikeResolution φ C_0 := TreeLikeResolution.resolve C_2
-          ({(v.toNegLiteral h_val)} : Clause vars) v temp_fix₁ h_v_not_mem_c
+          ({(v.toNegLiteral h_val)} : Clause vars) v (by aesop) h_v_not_mem_c
           (TreeLikeResolution.axiom_clause left)
             (π_new.convert (by aesop (add safe unfold Literal.negate)))
             <| by
             constructor
-            · have : x = v.toLiteral temp_fix₁ := by aesop
+            · have : x = v.toLiteral (by aesop) := by aesop
               rw [this] at idea₂
               exact idea₂
             subst h_value h_value_false h_C_1_conv_right
@@ -892,20 +838,15 @@ lemma width_combine (vars) {φ : CNFFormula vars}
         have h_val : v ∈ vars := by aesop
 
         let π_ans : TreeLikeResolution φ C_0 := TreeLikeResolution.resolve {(v.toLiteral h_val)}
-          C_2 v temp_fix₁ h_v_not_mem_c (π_new.convert (by aesop (add safe unfold Literal.negate)))
+          C_2 v (by aesop) h_v_not_mem_c (π_new.convert (by aesop (add safe unfold Literal.negate)))
           (TreeLikeResolution.axiom_clause left)
           <| by
           constructor
           swap
-          · have : x = v.toNegLiteral temp_fix₁ := by
-              unfold v
-              ext
-              all_goals simp [h]
-            rw [this] at idea₂
-            exact idea₂
-          intro l h_l
-          apply Finset.mem_union_right
-          exact h_l
+          · have : x = v.toNegLiteral (by aesop) := by
+              aesop
+            grind
+          · aesop
         use π_ans
         unfold TreeLikeResolution.width
         have : C_0.card = C_1.card := by
@@ -919,28 +860,23 @@ lemma width_combine (vars) {φ : CNFFormula vars}
           · exact h_clause_card C_2 left
         subst h_value h_value_false h_C_1_conv_right
         unfold CNFFormula.substitute at π_1
-
-        simp_all only [Bool.false_eq_true, not_false_eq_true, decide_true, subset_refl,
-          convert_card, TreeLikeResolution.convert_trivial_width, sup_le_iff, true_and, ge_iff_le,
-          v, π_new, π_1_unfolded]
-        apply h_clause_card
-        assumption
+        aesop
 
     have idea₃ :
         ∃ (π : TreeLikeResolution φ_subs_false_conv (BotClause (vars))), π.width ≤ W + 1 := by
       let φ₁ : CNFFormula vars := (CNFFormula.simple_convert vars₁ vars φ_subs_false_unconv h_subs)
       have idea_subs : φ_subs_false_conv = φ₁ := by
         subst h_value
-        simp_all only [Literal.variable_mem_vars, Bool.not_eq_true, Bool.decide_eq_false,
+        simp_all only [Bool.not_eq_true, Bool.decide_eq_false,
           subset_refl, φ_subs_false_conv, vars₁, φ_subs_false_unconv, π_1_unfolded, φ₁]
       have int_proof : ∀ l ∈ BotClause vars₁, l.variable ∈ vars := by
         intro l a
         subst h_value
-        simp_all only [Literal.variable_mem_vars, Finset.notMem_empty, φ_subs_false_conv, vars₁,
+        simp_all only [Finset.notMem_empty, φ_subs_false_conv, vars₁,
           φ_subs_false_unconv, φ₁]
       have Bot_equiv : ((BotClause vars₁).convert vars int_proof) = BotClause vars := by
         subst h_value
-        simp_all only [Literal.variable_mem_vars, Bool.not_eq_true, Bool.decide_eq_false,
+        simp_all only [Bool.not_eq_true, Bool.decide_eq_false,
           subset_refl, Clause.convert_empty, φ_subs_false_conv, vars₁, φ_subs_false_unconv, φ₁,
           π_1_unfolded]
       have : ∃ (π_2 : TreeLikeResolution φ₁ ((BotClause (vars₁)).convert vars int_proof)),
