@@ -7,15 +7,12 @@ lemma lit_subst_is_Bot_false {vars}
     (ρ_false : (Assignment ({l.variable} : Finset Variable)))
     (h_value : ρ_false = (fun _ _ => (¬l.polarity : Bool))) :
     ({l} : Clause vars).substitute ρ_false = BotClause (vars \ {l.variable}):= by
-
-  unfold BotClause
   unfold Clause.substitute
   subst h_value
   simp_all only [Bool.not_eq_true, Bool.decide_eq_false, Option.ite_none_left_eq_some,
     Option.some.injEq]
   apply And.intro
-  · have : l.variable ∈ (vars ∩ {l.variable}) := by
-      aesop
+  · have : l.variable ∈ (vars ∩ {l.variable}) := by aesop
     let l' : Literal (vars ∩ {l.variable}) := l.convert (vars ∩ {l.variable}) this
     have : (({l} : Clause vars).split {l.variable}).1 = ({l'} :
         Clause ((vars) ∩ {l.variable})) := by
@@ -49,26 +46,13 @@ lemma card_subst {vars} {sub_vars} {ρ : Assignment sub_vars} (C : Clause (vars)
     (C.substitute ρ = none) ∨
     (∃ c_res, C.substitute ρ = some c_res ∧ Finset.card c_res ≤ Finset.card C) := by
   cases h : C.substitute ρ with
-  | none =>
-      -- Case 1: C.substitute ρ = none
-      apply Or.inl
-      rfl
+  | none => exact Or.inl rfl
   | some c_res =>
-      -- Case 2: C.substitute ρ = some c_res
-      apply Or.inr
-      use c_res
-      constructor
-      · rfl
-      · unfold Clause.substitute at h
-        simp_all
-        obtain ⟨h_left, h_right⟩ := h
-        subst h_right
-        have h : ∀ l ∈ {l ∈ C | l.variable ∉ sub_vars}, l.variable ∈ vars \ sub_vars := by
-          aesop
-        have : Finset.card (Clause.shrink ({l ∈ C | l.variable ∉ sub_vars}) (vars \ sub_vars) h) ≤
-            Finset.card C := by
-          exact shrink_width_ineq_adv C
-        aesop
+    refine Or.inr ⟨c_res, rfl, ?_⟩
+    have h₁ : (C.substitute ρ).isSome := by simp [h]
+    have := Clause.substitute_card_leq_card C ρ (h := h₁)
+    simp [h] at this
+    exact this
 
 
 lemma card_combination {vars} {sub_vars} {ρ : Assignment sub_vars} (C : Clause (vars \ sub_vars))
@@ -726,12 +710,19 @@ lemma substitute_second_trivial_property {vars}
         aesop) := by grind
   aesop
 
--- Gemini generated this lemma
-
 lemma var_mem_of_literal_mem {v_set} (l : Literal v_set) :
-  l.variable ∈ v_set := by
-  simp [Literal.variable, *]
+    l.variable ∈ v_set := Literal.variable_mem_vars l
 
+
+private lemma clause_card_substitute_le {vars sub_vars} {φ : CNFFormula vars}
+    {ρ : Assignment sub_vars} {W_c : ℕ} (h_clause_card : ∀ C ∈ φ, C.card ≤ W_c) :
+    ∀ C ∈ φ.substitute ρ, C.card ≤ W_c := by
+  intro C h_c
+  obtain ⟨A, h_A_in, h_A_sub⟩ := CNFFormula.substitute_preimage h_c
+  have h₁ : (A.substitute ρ).isSome := by simp [h_A_sub]
+  have h_le := Clause.substitute_card_leq_card A ρ (h := h₁)
+  simp [h_A_sub] at h_le
+  exact h_le.trans (h_clause_card A h_A_in)
 
 lemma width_combine (vars) {φ : CNFFormula vars}
     (x : Literal vars) (h₀ : x.variable ∈ vars)
@@ -1009,70 +1000,32 @@ lemma axiom_if_none {vars} {φ : CNFFormula vars} {c : Clause vars} (π : TreeLi
     getRootVariable π = none →
     ∃ (h_c_in_φ : c ∈ φ), π = TreeLikeResolution.axiom_clause h_c_in_φ := by
   intro h_none
-  -- Split π into its two possible constructors
   cases π with
-  | axiom_clause h_c_in_φ =>
-      -- Case 1: π is an axiom_clause. This matches our goal.
-      exists h_c_in_φ
-  | resolve c₁ c₂ v h_vars h_c π₁ π₂ h_res =>
-      -- Case 2: π is a resolve.
-      -- But getRootVariable (resolve ...) returns 'some v'.
-      -- This contradicts our assumption 'h_none' (some v = none).
-      simp [getRootVariable] at h_none
+  | axiom_clause h => exact ⟨h, rfl⟩
+  | resolve => simp [getRootVariable] at h_none
 
 lemma root_var_in_vars {vars} {φ : CNFFormula vars} {c : Clause vars}
     (π : TreeLikeResolution φ c) (v : Variable) :
     getRootVariable π = some v → v ∈ vars := by
-  intro h_get
-  -- Split π into its constructors
   cases π with
-  | axiom_clause h_in =>
-      -- getRootVariable returns 'none' for axioms, so this branch is impossible
-      simp [getRootVariable] at h_get
-  | resolve c₁ c₂ v' h_v_in_vars h_not_in π₁ π₂ h_res =>
-      -- Here, Lean sees that 'getRootVariable' returns 'some v''
-      simp [getRootVariable] at h_get
-      -- Since 'some v' = 'some v'', then 'v = v''
-      rw [← h_get]
-      exact h_v_in_vars
+  | axiom_clause => simp [getRootVariable]
+  | resolve _ _ v' h_v_in_vars =>
+    simp [getRootVariable]
+    rintro rfl
+    exact h_v_in_vars
 
-lemma size_split {a b k : ℕ} (h : a + b ≤ k + k) : a ≤ k ∨ b ≤ k := by
-  -- Use proof by contradiction
-  by_contra h_both
-  -- Push the negation: ¬(a ≤ k ∨ b ≤ k) becomes (a > k ∧ b > k)
-  simp [not_or] at h_both
-  have ⟨ha, hb⟩ := h_both
-  -- Since a and b are natural numbers, a > k means a ≥ k + 1
-  have ha' : a ≥ k + 1 := Nat.succ_le_of_lt ha
-  have hb' : b ≥ k + 1 := Nat.succ_le_of_lt hb
-  -- Add the inequalities: a + b ≥ k + 1 + k + 1 = (k + k) + 2
-  have h_sum := Nat.add_le_add ha' hb'
-  -- This contradicts our hypothesis h : a + b ≤ k + k
-  linarith
+lemma size_split {a b k : ℕ} (h : a + b ≤ k + k) : a ≤ k ∨ b ≤ k := by omega
 
 
 
 
 
-lemma eliminate_vacuous_resolutions {vars} {φ : CNFFormula vars} -- {c : Clause vars}
+lemma eliminate_vacuous_resolutions {vars} {φ : CNFFormula vars}
     (π : TreeLikeResolution φ (BotClause vars)) :
     ∃ (π' : TreeLikeResolution φ (BotClause vars)), IsRegularRes π' ∧ π'.size ≤ π.size := by
-
-  have : ∃ (c' : Clause vars) (π' : TreeLikeResolution φ c'), (c' ⊆ (BotClause vars)) ∧
-      IsRegularRes π' ∧ π'.size ≤ π.size := by
-    exact resolution_regularize π
-  obtain ⟨c', h_π⟩ := this
-  obtain ⟨π', h_π⟩ := h_π
-  have idea : c' = (BotClause vars) := by
-    simp_all only [Finset.subset_empty]
-  subst c'
-  simp_all only [subset_refl, true_and]
-  obtain ⟨left, right⟩ := h_π
-  apply Exists.intro
-  · apply And.intro
-    on_goal 2 => { exact right
-    }
-    · simp_all only
+  obtain ⟨c', π', h_sub, h_reg, h_size⟩ := resolution_regularize π
+  have hc : c' = BotClause vars := Finset.subset_empty.mp h_sub
+  subst hc; exact ⟨π', h_reg, h_size⟩
 
 
 lemma var_incl {vars} (v : Variable) (C : Clause vars) (h_v_in_vars : v ∈ vars)
@@ -1336,63 +1289,10 @@ theorem width_imply_size_ind_version (W : ℕ)
           obtain ⟨π_2, h_π_2⟩ := h_π_2_existence
 
 
-          have h_clause_subs_width_true : ∀ C ∈ φ.substitute ρ_true, Finset.card C ≤ W_c := by
-                intro C_2 h_c_2
-                unfold CNFFormula.substitute at h_c_2
-                simp at h_c_2
-                obtain ⟨A, h_A⟩ := h_c_2
-                obtain ⟨h_A_left, h_A_right⟩ := h_A
-                trans Finset.card A
-                swap
-                · exact h_clause_card A h_A_left
-                have : (A.substitute ρ_true = none) ∨
-                    (∃ c_res, A.substitute ρ_true = some c_res ∧
-                     Finset.card c_res ≤ Finset.card A) := by
-                  exact card_subst A
-                -- 1. Split the 'this' hypothesis
-                rcases this with h_none | ⟨c_res, h_some, h_le⟩
-                · -- Case: A.substitute ρ_true = none
-                  -- This is impossible because we know it equals 'some C_2'
-                  rw [h_A_right] at h_none
-                  contradiction
-
-                · -- Case: ∃ c_res, A.substitute ρ_true = some c_res ∧ ...
-                  -- Since A.substitute ρ_true equals both 'some C_2' and 'some c_res'
-                  rw [h_A_right] at h_some
-                  -- Injectivity of 'some' tells us C_2 = c_res
-                  injection h_some with h_eq
-                  -- Substitute c_res for C_2 in the cardinality bound
-                  rw [← h_eq] at h_le
-                  exact h_le
-
-          have h_clause_subs_width_false : ∀ C ∈ φ.substitute ρ_false, Finset.card C ≤ W_c := by
-            intro C_2 h_c_2
-            unfold CNFFormula.substitute at h_c_2
-            simp at h_c_2
-            obtain ⟨A, h_A⟩ := h_c_2
-            obtain ⟨h_A_left, h_A_right⟩ := h_A
-            trans Finset.card A
-            swap
-            · exact h_clause_card A h_A_left
-            have : (A.substitute ρ_false = none) ∨
-                (∃ c_res, A.substitute ρ_false = some c_res ∧
-                Finset.card c_res ≤ Finset.card A) := by
-              exact card_subst A
-            -- 1. Split the 'this' hypothesis
-            rcases this with h_none | ⟨c_res, h_some, h_le⟩
-            · -- Case: A.substitute ρ_true = none
-              -- This is impossible because we know it equals 'some C_2'
-              rw [h_A_right] at h_none
-              contradiction
-
-            · -- Case: ∃ c_res, A.substitute ρ_true = some c_res ∧ ...
-              -- Since A.substitute ρ_true equals both 'some C_2' and 'some c_res'
-              rw [h_A_right] at h_some
-              -- Injectivity of 'some' tells us C_2 = c_res
-              injection h_some with h_eq
-              -- Substitute c_res for C_2 in the cardinality bound
-              rw [← h_eq] at h_le
-              exact h_le
+          have h_clause_subs_width_true : ∀ C ∈ φ.substitute ρ_true, Finset.card C ≤ W_c :=
+            clause_card_substitute_le h_clause_card
+          have h_clause_subs_width_false : ∀ C ∈ φ.substitute ρ_false, Finset.card C ≤ W_c :=
+            clause_card_substitute_le h_clause_card
 
 
 

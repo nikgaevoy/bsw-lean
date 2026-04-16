@@ -70,10 +70,7 @@ def Clause.split {vars} (c : Clause vars) (split_vars : Variables) :
 /-- Generates a partial assignment over a subset of variables. -/
 def Assignment.restrict {vars} (ρ : Assignment vars) (sub_vars : Variables)
     (h_subset : sub_vars ⊆ vars) : Assignment sub_vars :=
-  have : ∀ v ∈ sub_vars, v ∈ vars := by
-    exact fun v a ↦ h_subset a
-
-  fun v h_v_mem_sub_vars => ρ v (this v h_v_mem_sub_vars)
+  fun v h_v_mem_sub_vars => ρ v (h_subset h_v_mem_sub_vars)
 
 @[simp]
 lemma Assignment.double_restrict {vars sub_vars₁ sub_vars₂} (ρ : Assignment vars)
