@@ -441,8 +441,9 @@ lemma ufold_one_literal {vars} {φ : CNFFormula vars}
     (fact₀ : {x.variable} ⊆ vars) :
     (TreeLikeResolution.unsubstitute_rhs ρ_true π_1) ⊆ ({x.negate} : Clause vars) := by
 
-  unfold TreeLikeRefutation at π_1
 
+  unfold TreeLikeRefutation at π_1
+  
   have trick :  Finset.disjUnion (vars \ {x.variable}) {x.variable}
       (Finset.sdiff_disjoint : Disjoint (vars \ {x.variable}) {x.variable}) = vars := by
     aesop
@@ -473,6 +474,7 @@ lemma ufold_one_literal {vars} {φ : CNFFormula vars}
   unfold Clause.convert_trivial
   aesop
 
+--lemma local_convertion
 
 def convert_proof (W : ℕ) {vars₁ vars₂ : Variables} {φ : CNFFormula vars₁} {C : Clause vars₁}
   {φ₁ : CNFFormula vars₂} (h_subs : vars₁ ⊆ vars₂)
@@ -520,6 +522,7 @@ def convert_proof (W : ℕ) {vars₁ vars₂ : Variables} {φ : CNFFormula vars�
         unfold TreeLikeResolution.width at h_width
         subst h_conv
         simp_all only [Finset.union_singleton, sup_le_iff, true_and]
+
       have idea₂ : π_b.width ≤ W := by
         unfold TreeLikeResolution.width at h_width
         subst h_conv
@@ -543,9 +546,6 @@ def convert_proof (W : ℕ) {vars₁ vars₂ : Variables} {φ : CNFFormula vars�
       have fact₀ :  ∀ l ∈ C, l.variable ∈ vars₂ := by
         aesop
 
-      have fact₄ : v ∉ (C.convert vars₂ fact₀).variables := by
-        aesop
-
       have left : c₁ ⊆ C ∪ {v.toLiteral h_v_mem} := by
         grind
 
@@ -554,60 +554,45 @@ def convert_proof (W : ℕ) {vars₁ vars₂ : Variables} {φ : CNFFormula vars�
 
       have h_resolve : c₁.convert vars₂ fact₁ ⊆ C.convert vars₂ fact₀ ∪ {v.toLiteral v_new_mem} ∧
         c₂.convert vars₂ fact₂ ⊆ C.convert vars₂ fact₀ ∪ {v.toNegLiteral v_new_mem} := by
-        
-        have incl₁ : ∀ l ∈ C ∪ {v.toLiteral h_v_mem}, l.variable ∈ vars₂ := by
-          aesop
 
-        have incl₂ : ∀ l ∈ ({v.toLiteral h_v_mem} : Clause vars₁), l.variable ∈ vars₂ := by
-          aesop
 
         constructor
-        · trans (C ∪ ({v.toLiteral h_v_mem} : Clause vars₁)).convert vars₂ incl₁
-          · exact loose_convert c₁ (C ∪ {v.toLiteral h_v_mem}) left
-          trans C.convert vars₂ fact₀ ∪ ({v.toLiteral h_v_mem} : Clause vars₁).convert vars₂ incl₂
-          · have new₁ : (C ∪ {v.toLiteral h_v_mem}).convert vars₂ incl₁ = C.convert vars₂ fact₀ ∪
-                ({v.toLiteral h_v_mem} : Clause vars₁).convert vars₂ incl₂ := by
-              exact carry_through_convert C ({v.toLiteral h_v_mem} : Clause vars₁)
-            exact Finset.subset_of_eq new₁
-          · have new₂ : ({v.toLiteral h_v_mem} : Clause vars₁).convert vars₂ incl₂ =
+
+        · clear idea fact₂ right h_v_not h_width
+            idea₁ idea₂ h_res idea' h_conv π_a_new π_a π_b h_wa π_b_new h_wb π₁ φ φ₁ c₂
+
+          trans (C ∪ ({v.toLiteral h_v_mem} : Clause vars₁)).convert vars₂ (by aesop)
+          · grind only [loose_convert]
+          · have new₂ : ({v.toLiteral h_v_mem} : Clause vars₁).convert vars₂ (by aesop) =
                 {v.toLiteral v_new_mem} := by
               unfold Clause.convert
               aesop
+            grind only [carry_through_convert, Finset.subset_of_eq, loose_convert]
 
-            rw [new₂]
 
-        have incl₁ : ∀ l ∈ C ∪ {v.toNegLiteral h_v_mem}, l.variable ∈ vars₂ := by
-          aesop
-        have incl₂ : ∀ l ∈ ({v.toNegLiteral h_v_mem} : Clause vars₁), l.variable ∈ vars₂ := by
-          aesop
-        trans (C ∪ ({v.toNegLiteral h_v_mem} : Clause vars₁)).convert vars₂ incl₁
-        · exact loose_convert c₂ (C ∪ {v.toNegLiteral h_v_mem}) right
-        trans C.convert vars₂ fact₀ ∪ ({v.toNegLiteral h_v_mem} : Clause vars₁).convert vars₂ incl₂
-        · have new₁ : (C ∪ {v.toNegLiteral h_v_mem}).convert vars₂ incl₁ = C.convert vars₂ fact₀ ∪
-              ({v.toNegLiteral h_v_mem} : Clause vars₁).convert vars₂ incl₂ := by
-            exact carry_through_convert C ({v.toNegLiteral h_v_mem} : Clause vars₁)
-          subst h_conv
-          simp_all only [Clause.convert_keeps_variables, not_false_eq_true, Finset.union_singleton,
-            subset_refl]
-        have new₂ : ({v.toNegLiteral h_v_mem} : Clause vars₁).convert vars₂ incl₂ =
-            {v.toNegLiteral v_new_mem} := by
-          unfold Clause.convert
-          aesop
-        rw [new₂]
+        · clear idea left h_v_not h_width fact₁
+            idea₁ idea₂ h_res idea' h_conv π_a_new π_a π_b h_wa π_b_new h_wb π₁ φ φ₁ c₁
+
+          trans (C ∪ ({v.toNegLiteral h_v_mem} : Clause vars₁)).convert vars₂ (by aesop)
+          · grind only [loose_convert]
+          have new₂ : ({v.toNegLiteral h_v_mem} : Clause vars₁).convert vars₂ (by aesop) =
+              {v.toNegLiteral v_new_mem} := by
+            unfold Clause.convert
+            aesop
+          grind only [carry_through_convert, Finset.subset_of_eq, loose_convert]
 
 
       -- 3. Construct the new resolution node
       let π_new := TreeLikeResolution.resolve
         (c₁.convert vars₂ fact₁)
         (c₂.convert vars₂ fact₂)
-        v v_new_mem fact₄ π_a_new π_b_new h_resolve
+        v v_new_mem (by aesop) π_a_new π_b_new h_resolve
 
       ⟨π_new, by
         -- width is max of |C_new| and the sub-widths.
         -- All these are ≤ W because the original ones were.
         unfold TreeLikeResolution.width
-        subst h_conv
-        simp_all only [Finset.union_singleton, convert_card, sup_le_iff, and_self]⟩
+        aesop⟩
 
 -- Tried to vibe code this one - ended up horribly...
 
