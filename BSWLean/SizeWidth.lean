@@ -178,9 +178,8 @@ lemma inter_idea_new_version (vars sub_vars) (lit : Literal (vars \ sub_vars))
   rw [this]
   trans ((c_1 ∪ {lit}).convert vars (by grind [subset_of_vars_clause]))
   · aesop
-  trans (c_1.convert vars (by grind)) ∪ {lit.convert vars var_incl}
-  · grind [carry_through_convert]
-  · aesop
+  grind [carry_through_convert, loose_convert, Clause.convert_convert, subset_refl]
+
 
 
 lemma sdiff_disjUnion_eq_vars {vars sub_vars : Variables} (h_subset : sub_vars ⊆ vars) :
@@ -203,9 +202,7 @@ lemma resolve_unsubstitute_subset (vars sub_vars : Variables) (φ : CNFFormula v
       vars inter_proof).resolve
       ((Clause.combine c_3 ρ.toClause Finset.sdiff_disjoint).convert_trivial
         vars inter_proof) var (Finset.sdiff_subset h_4 : var ∈ vars)) := by
-  have idea₁ := TreeLikeResolution.unsubstitute_rhs_variables ρ p_1 h_subset
-  have idea₂ := TreeLikeResolution.unsubstitute_rhs_variables ρ p_2 h_subset
-  grind [resolve_subsets]
+  grind only [TreeLikeResolution.unsubstitute_rhs_variables, resolve_subsets]
 
 lemma resolve_combined_le_c1 (vars sub_vars : Variables) (var : Variable)
     (ρ : Assignment sub_vars) (c_1 c_2 c_3 : Clause (vars \ sub_vars))
@@ -220,6 +217,7 @@ lemma resolve_combined_le_c1 (vars sub_vars : Variables) (var : Variable)
         inter_proof) var var_incl) ≤
     Finset.card ((Clause.combine c_1 ρ.toClause Finset.sdiff_disjoint).convert_trivial
        vars inter_proof) := by
+
   have idea₃ := inter_idea_new_version vars sub_vars
     (var.toLiteral h_4) ρ c_1 c_2 inter_proof var_incl left
   have idea₄ := inter_idea_new_version vars sub_vars
@@ -232,6 +230,7 @@ lemma resolve_combined_le_c1 (vars sub_vars : Variables) (var : Variable)
     (by grind) idea₃ idea₄
 
 
+
 lemma resolve_ineq (vars sub_vars) (φ : CNFFormula vars) (var : Variable)
     (ρ : Assignment sub_vars) (c_1 c_2 c_3 : Clause (vars \ sub_vars))
     (h_subset : sub_vars ⊆ vars)
@@ -241,8 +240,7 @@ lemma resolve_ineq (vars sub_vars) (φ : CNFFormula vars) (var : Variable)
     (left : c_2 ⊆ c_1 ∪ {var.toLiteral h_4})
     (right : c_3 ⊆ c_1 ∪ {var.toNegLiteral h_4}) :
     Finset.card ((TreeLikeResolution.resolve c_2 c_3 var h_4 h_0 p_1 p_2
-    (⟨left, right⟩ : c_2 ⊆ c_1 ∪ {var.toLiteral h_4} ∧
-      c_3 ⊆ c_1 ∪ {var.toNegLiteral h_4})).unsubstitute_rhs ρ) ≤
+    (⟨left, right⟩)).unsubstitute_rhs ρ) ≤
     max (Finset.card c_1) (max p_1.width p_2.width) + Finset.card sub_vars := by
   unfold TreeLikeResolution.unsubstitute_rhs
   simp
@@ -1002,15 +1000,6 @@ theorem width_imply_size_ind_version (W : ℕ)
             c₁ = ∅ ∨ c₁ = {v'.toLiteral h_v_in_vars} :=
             Finset.subset_singleton_iff.mp hsubset_left
 
-          -- cases hcases_left with
-          -- | inl h_empty =>
-          --     subst c₁
-          --     use π₁
-          --     obtain ⟨left, right⟩ := h_gen_size_lb
-
-          --     sorry
-          -- | inr h_single =>
-
 
           have h_π_1_existence :
               ∃ (π_1 : TreeLikeResolution (φ.substitute ρ_true) (BotClause (s \ {v}))),
@@ -1155,7 +1144,8 @@ theorem width_imply_size_ind_version (W : ℕ)
               have ih'_1 := ih' (φ.substitute ρ_false) h_clause_subs_width_false π_2 idea_10
               obtain ⟨π_2', idea_11⟩ := ih'_1
               obtain ⟨π_final, conclusion⟩ :=
-                width_ind_combine (by omega) h_clause_card (v.toLiteral h_v_incl) rfl rfl π_1' idea_00' π_2' idea_11
+                width_ind_combine (by omega) h_clause_card (v.toLiteral h_v_incl)
+                rfl rfl π_1' idea_00' π_2' idea_11
               use π_final
               grind
 
@@ -1175,7 +1165,8 @@ theorem width_imply_size_ind_version (W : ℕ)
               have ih'_1 := ih' (φ.substitute ρ_true) h_clause_subs_width_true π_1 idea_10
               obtain ⟨π_1', idea_11⟩ := ih'_1
               obtain ⟨π_final, conclusion⟩ :=
-                width_ind_combine (by omega) h_clause_card (v.toNegLiteral h_v_incl) rfl rfl π_2' idea_00' π_1' idea_11
+                width_ind_combine (by omega) h_clause_card (v.toNegLiteral h_v_incl)
+                rfl rfl π_2' idea_00' π_1' idea_11
               use π_final
               grind
 
