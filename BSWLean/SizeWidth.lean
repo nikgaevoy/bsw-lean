@@ -623,167 +623,58 @@ lemma width_combine (vars) {φ : CNFFormula vars}
     (π_2 : TreeLikeRefutation (φ.substitute ρ_false)) (h_width_false : π_2.width ≤ W + 1)
     (h_clause_card : ∀ C ∈ φ, C.card ≤ W + 1) :
     ∃ (π' : TreeLikeRefutation φ), π'.width ≤ W + 1 := by
-
-
   let π_1_unfolded := TreeLikeResolution.unsubstitute ρ_true π_1 (by aesop)
-
-  have idea₀ : (TreeLikeResolution.unsubstitute_rhs ρ_true π_1) ⊆ ({x.negate}) := by
-    exact ufold_one_literal x h₀ ρ_true h_value π_1 (by aesop)
-
-
-  have idea₁ : π_1_unfolded.width ≤ W + 1 := by
-    grind [unsub_increase_width]
-
-  have fact₁ : (C : Clause (vars \ {x.variable})) -> (∀ l ∈ C, l.variable ∈ vars) := by
-    grind
-
-
-  let vars₁ := (vars \ {x.variable})
-
-  let φ_subs_false_unconv := (φ.substitute ρ_false)
-
-  have h_subs : vars₁ ⊆ vars := by
-    exact Finset.sdiff_subset
-
-  let φ_subs_false_conv := (CNFFormula.simple_convert
-      vars₁ vars (φ_subs_false_unconv) h_subs)
-
-  -- 2. Change the type of π_1 in the context
+  have idea₀ : (TreeLikeResolution.unsubstitute_rhs ρ_true π_1) ⊆ ({x.negate}) :=
+    ufold_one_literal x h₀ ρ_true h_value π_1 (by aesop)
+  have idea₁ : π_1_unfolded.width ≤ W + 1 := by grind [unsub_increase_width]
+  have fact₁ : (C : Clause (vars \ {x.variable})) → (∀ l ∈ C, l.variable ∈ vars) := by grind
+  let vars₁ := vars \ {x.variable}
+  let φ_subs_false_unconv := φ.substitute ρ_false
+  have h_subs : vars₁ ⊆ vars := Finset.sdiff_subset
+  let φ_subs_false_conv := CNFFormula.simple_convert vars₁ vars φ_subs_false_unconv h_subs
   change TreeLikeResolution φ_subs_false_unconv (BotClause vars₁) at π_2
-
-  -- 3. If you want the width bound to reflect the new name as well:
-  --change π_1.width ≤ W at h_width_false
-
-  --by_cases (TreeLikeResolution.unsubstitute_rhs ρ_true π_1 fact₀) = ({x.negate})
   have h_cases := Finset.subset_singleton_iff.mp idea₀
   rcases h_cases with h_empty | h_eq
-  · -- Case 1: The set is empty
-    -- 1. Transport the proof A along the equality h_1
-    let π_refutation : TreeLikeRefutation φ := cast (by rw [h_empty]) π_1_unfolded
-    -- 2. Prove that the width is preserved
-    -- Since h_1 is C = ∅, transport doesn't change the physical
-    -- nodes of the tree, so the width is identical.
-    have h_width :  π_refutation.width ≤ W + 1:= by
-      -- We use 'subst' to replace C with ∅ in the goal,
-      -- making π_refutation definitionally equal to A.
-      subst h_value
-      grind
-
-  -- 3. Package it into the existential
-    exact ⟨π_refutation, h_width⟩
-
-  · -- Case 2: The set is the singleton
-
-    have idea₂ : ∀ C ∈ φ_subs_false_conv, ∃ (π : TreeLikeResolution φ C), π.width ≤ W + 1 := by
-
+  · let π_refutation : TreeLikeRefutation φ := cast (by rw [h_empty]) π_1_unfolded
+    exact ⟨π_refutation, by subst h_value; grind⟩
+  · have idea₂ : ∀ C ∈ φ_subs_false_conv, ∃ (π : TreeLikeResolution φ C), π.width ≤ W + 1 := by
       intro C_0 h_c
       have entry₁ : ∃ C_1 ∈ φ_subs_false_unconv,
-          (C_1.convert vars (by exact fun l a ↦ (fact₁) C_1 l a)) = C_0 := by
-        -- unfold φ_subs_false_unconv
-        -- unfold φ_subs_false_conv at h_c
+          (C_1.convert vars (by exact fun l a ↦ fact₁ C_1 l a)) = C_0 := by
         unfold φ_subs_false_conv CNFFormula.simple_convert at h_c
-        -- 2. Use the 'mem_image' lemma to turn membership into an existential
-        -- 'h_c' is C_0 ∈ (φ_subs_false_unconv.image (fun c => c.convert ...))
         rw [Finset.mem_image] at h_c
-        -- 3. Extract the witness and the properties
-        -- h_c becomes: ∃ C_1 ∈ φ_subs_false_unconv, C_1.convert ... = C_0
-        rcases h_c with ⟨C_1, h_C1_in, h_eq⟩
-        -- 4. Satisfy the goal
-        use C_1
-
-      obtain ⟨C_1, h_C_1_conv⟩ := entry₁
-      obtain ⟨h_C_1_conv_left, h_C_1_conv_right⟩ := h_C_1_conv
-
-      have entry₂ : ∃ C_2 ∈ φ, (C_2.substitute ρ_false) = C_1 := by
-        unfold CNFFormula.substitute at h_C_1_conv_left
-
-        -- 2. Use mem_filterMap to show that C_1 came from a 'some C_1' in the intermediate set
-        -- Intermediate set: (φ.image (fun c => c.substitute ρ_false))
-        unfold φ_subs_false_unconv at h_C_1_conv_left
-        unfold CNFFormula.substitute at h_C_1_conv_left
-        rw [Finset.mem_filterMap] at h_C_1_conv_left
-        -- This gives: ∃ o ∈ φ.image (fun c => c.substitute ρ_false), id o = some C_1
-        rcases h_C_1_conv_left with ⟨o, h_o_in, h_o_eq⟩
-        simp at h_o_eq -- This makes it: o = some C_1
-
-        -- 3. Use mem_image to find the original clause C_2 in φ
-        rw [Finset.mem_image] at h_o_in
-        -- This gives: ∃ C_2 ∈ φ, (fun c => c.substitute ρ_false) C_2 = o
-        rcases h_o_in with ⟨C_2, h_C2_in, h_sub_eq⟩
-
-        -- 4. Combine the results
-        use C_2
-        constructor
-        · exact h_C2_in
-        · rw [h_sub_eq, h_o_eq]
-      obtain ⟨C_2, h_C_2_conv⟩ := entry₂
-
-
-      have idea₂ : C_2 ⊆ C_0 ∪ ({x} : Clause vars) := by
-        exact
-          substitute_trivial_property φ x C_0 h_subs ρ_false h_value_false h_c C_1
-            h_C_1_conv_left (fun l a ↦ fact₁ C_1 l a) h_C_1_conv_right C_2 h_C_2_conv
-
+        exact h_c
+      obtain ⟨C_1, h_C_1_conv_left, h_C_1_conv_right⟩ := entry₁
+      obtain ⟨C_2, h_C2_in_φ, h_C2_sub⟩ := CNFFormula.substitute_preimage h_C_1_conv_left
+      have idea₂ : C_2 ⊆ C_0 ∪ ({x} : Clause vars) :=
+        substitute_trivial_property φ x C_0 h_subs ρ_false h_value_false h_c C_1
+          h_C_1_conv_left (fun l a ↦ fact₁ C_1 l a) h_C_1_conv_right C_2 ⟨h_C2_in_φ, h_C2_sub⟩
       have this_1 : C_0 ⊆ C_2 := by
         rw [← h_C_1_conv_right]
-        exact clause_substitute_convert_subset h_C_2_conv.right (fun l a ↦ fact₁ C_1 l a)
-
-      obtain ⟨left, right⟩ := h_C_2_conv
-
-
+        exact clause_substitute_convert_subset h_C2_sub (fun l a ↦ fact₁ C_1 l a)
       have h_v_not_mem_c : x.variable ∉ C_0.variables := by
         have h_prep : x.variable ∉ C_1.variables := by
           intro h_mem
-          rcases Finset.mem_image.1 h_mem with ⟨l, _, hl_eq⟩
-          have h_in := var_mem_of_literal_mem l
-          rw [hl_eq] at h_in
-          simp at h_in
+          obtain ⟨l, _, hl_eq⟩ := Finset.mem_image.1 h_mem
+          exact absurd (hl_eq ▸ var_mem_of_literal_mem l) (by simp)
         aesop
-
-
       let π_new : TreeLikeResolution φ {x.negate} := h_eq ▸ π_1_unfolded
       unfold π_1_unfolded at idea₁
       have idea_new : π_new.width ≤ W + 1 := by grind
-
-      exact resolve_axiom_with_negate h_v_not_mem_c left idea₂
-        ((Finset.card_le_card this_1).trans (h_clause_card C_2 left))
-        (h_clause_card C_2 left) π_new idea_new
+      exact resolve_axiom_with_negate h_v_not_mem_c h_C2_in_φ idea₂
+        ((Finset.card_le_card this_1).trans (h_clause_card C_2 h_C2_in_φ))
+        (h_clause_card C_2 h_C2_in_φ) π_new idea_new
 
     have idea₃ :
         ∃ (π : TreeLikeResolution φ_subs_false_conv (BotClause (vars))), π.width ≤ W + 1 := by
-      let φ₁ : CNFFormula vars := (CNFFormula.simple_convert vars₁ vars φ_subs_false_unconv h_subs)
-      have idea_subs : φ_subs_false_conv = φ₁ := by
-        subst h_value
-        simp_all only [Bool.not_eq_true, Bool.decide_eq_false,
-          subset_refl, φ_subs_false_conv, vars₁, φ_subs_false_unconv, π_1_unfolded, φ₁]
-      have int_proof : ∀ l ∈ BotClause vars₁, l.variable ∈ vars := by
-        intro l a
-        subst h_value
-        simp_all only [Finset.notMem_empty, φ_subs_false_conv, vars₁,
-          φ_subs_false_unconv, φ₁]
-      have Bot_equiv : ((BotClause vars₁).convert vars int_proof) = BotClause vars := by
-        subst h_value
-        simp_all only [Bool.not_eq_true, Bool.decide_eq_false,
-          subset_refl, Clause.convert_empty, φ_subs_false_conv, vars₁, φ_subs_false_unconv, φ₁,
-          π_1_unfolded]
-      have : ∃ (π_2 : TreeLikeResolution φ₁ ((BotClause (vars₁)).convert vars int_proof)),
-          π_2.width ≤ W + 1 := by
-        exact width_respect_convert vars₁ vars φ_subs_false_unconv φ_subs_false_conv h_subs
-          (by rfl) (W + 1) (BotClause (vars₁)) π_2 h_width_false int_proof
-      obtain ⟨π_cand, h_cand_width⟩ := this
+      have int_proof : ∀ l ∈ BotClause vars₁, l.variable ∈ vars := by aesop
+      obtain ⟨π_cand, h_cand_width⟩ := width_respect_convert vars₁ vars φ_subs_false_unconv
+        φ_subs_false_conv h_subs (by rfl) (W + 1) (BotClause vars₁) π_2 h_width_false int_proof
       change TreeLikeResolution φ_subs_false_conv (BotClause vars) at π_cand
-      use π_cand
+      exact ⟨π_cand, h_cand_width⟩
 
-    have final_idea : ∃ (π : TreeLikeResolution φ (BotClause (vars))), π.width ≤ W + 1 := by
-      exact width_closure φ φ_subs_false_conv (W + 1) (BotClause (vars)) idea₂ idea₃
-
-    obtain ⟨π_final, final_proof⟩ := final_idea
-
-    let π_refutation : TreeLikeRefutation φ := π_final
-    have h_width :  π_refutation.width ≤ W + 1:= by
-      subst h_value
-      grind
-    exact ⟨π_refutation, h_width⟩
+    obtain ⟨π_final, final_proof⟩ := width_closure φ φ_subs_false_conv (W + 1) (BotClause vars) idea₂ idea₃
+    exact ⟨π_final, by subst h_value; grind⟩
 
 def getRootVariable {vars} {φ : CNFFormula vars} {c : Clause vars}
     (π : TreeLikeResolution φ c) : Option Variable :=
