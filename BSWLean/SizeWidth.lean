@@ -578,6 +578,37 @@ private lemma clause_card_substitute_le {vars sub_vars} {φ : CNFFormula vars}
   simp [h_A_sub] at h_le
   exact h_le.trans (h_clause_card A h_A_in)
 
+private lemma resolve_axiom_with_negate {vars} {φ : CNFFormula vars}
+    {x : Literal vars} {C_0 C_2 : Clause vars} {W : ℕ}
+    (h_v_not_mem : x.variable ∉ C_0.variables)
+    (h_C2_in_φ : C_2 ∈ φ)
+    (h_C2_sub : C_2 ⊆ C_0 ∪ {x})
+    (h_C0_card : C_0.card ≤ W + 1)
+    (h_C2_card : C_2.card ≤ W + 1)
+    (π_neg : TreeLikeResolution φ {x.negate})
+    (h_neg_width : π_neg.width ≤ W + 1) :
+    ∃ π : TreeLikeResolution φ C_0, π.width ≤ W + 1 := by
+  let v := x.variable
+  have h_val : v ∈ vars := Literal.variable_mem_vars x
+  cases hpol : x.polarity with
+  | true =>
+    have hvx : v.toLiteral h_val = x := Literal.ext rfl hpol.symm
+    have hxn : x.negate = v.toNegLiteral h_val :=
+      Literal.ext rfl (by simp [Literal.negate, Variable.toNegLiteral, hpol])
+    exact ⟨TreeLikeResolution.resolve C_2 {x.negate} v h_val h_v_not_mem
+        (TreeLikeResolution.axiom_clause h_C2_in_φ) π_neg
+        ⟨by rw [hvx]; exact h_C2_sub, by rw [hxn]; exact Finset.subset_union_right⟩,
+      by unfold TreeLikeResolution.width; grind [TreeLikeResolution.width]⟩
+  | false =>
+    have hvx : v.toNegLiteral h_val = x :=
+      Literal.ext rfl (by simp [Variable.toNegLiteral, hpol])
+    have hxn : x.negate = v.toLiteral h_val :=
+      Literal.ext rfl (by simp [Literal.negate, Variable.toLiteral, hpol])
+    exact ⟨TreeLikeResolution.resolve {x.negate} C_2 v h_val h_v_not_mem
+        π_neg (TreeLikeResolution.axiom_clause h_C2_in_φ)
+        ⟨by rw [hxn]; exact Finset.subset_union_right, by rw [hvx]; exact h_C2_sub⟩,
+      by unfold TreeLikeResolution.width; grind [TreeLikeResolution.width]⟩
+
 /-!
 Key lemma used to prove size-width relation. Corresponds to Lemma 3.2 from Ben-Sasson Wigderson
 -/
@@ -714,66 +745,9 @@ lemma width_combine (vars) {φ : CNFFormula vars}
       unfold π_1_unfolded at idea₁
       have idea_new : π_new.width ≤ W + 1 := by grind
 
-      by_cases h : x.polarity
-      case pos =>
-        simp_all only [Literal.negate]
-        let v := x.variable
-        have h_val : v ∈ vars := by aesop
-
-        let π_ans : TreeLikeResolution φ C_0 := TreeLikeResolution.resolve C_2
-          ({(v.toNegLiteral h_val)} : Clause vars) v (by aesop) h_v_not_mem_c
-          (TreeLikeResolution.axiom_clause left)
-            (π_new.convert (by aesop (add safe unfold Literal.negate)))
-            <| by
-            constructor
-            · have : x = v.toLiteral (by aesop) := by aesop
-              rw [this] at idea₂
-              exact idea₂
-            subst h_value h_value_false h_C_1_conv_right
-            aesop (add safe unfold Literal.negate)
-
-        use π_ans
-        unfold TreeLikeResolution.width
-        have : C_0.card = C_1.card := by
-          subst h_value h_value_false h_C_1_conv_right
-          simp_all
-        have : C_1.card ≤ W + 1 := by
-          rw [<-this]
-          trans C_2.card
-          · expose_names
-            exact Finset.card_le_card this_1
-          · exact h_clause_card C_2 left
-        aesop
-      case neg =>
-        simp at h
-        simp_all only [Literal.negate]
-        let v := x.variable
-        have h_val : v ∈ vars := by aesop
-
-        let π_ans : TreeLikeResolution φ C_0 := TreeLikeResolution.resolve {(v.toLiteral h_val)}
-          C_2 v (by aesop) h_v_not_mem_c (π_new.convert (by aesop (add safe unfold Literal.negate)))
-          (TreeLikeResolution.axiom_clause left)
-          <| by
-          constructor
-          swap
-          · have : x = v.toNegLiteral (by aesop) := by
-              aesop
-            grind
-          · aesop
-        use π_ans
-        unfold TreeLikeResolution.width
-        have : C_0.card = C_1.card := by
-          subst h_value h_value_false h_C_1_conv_right
-          simp_all
-        have : C_1.card ≤ W + 1 := by
-          rw [<-this]
-          trans C_2.card
-          · expose_names
-            exact Finset.card_le_card this_1
-          · exact h_clause_card C_2 left
-        subst h_value h_value_false h_C_1_conv_right
-        unfold CNFFormula.substitute at π_1
-        aesop
+      exact resolve_axiom_with_negate h_v_not_mem_c left idea₂
+        ((Finset.card_le_card this_1).trans (h_clause_card C_2 left))
+        (h_clause_card C_2 left) π_new idea_new
 
     have idea₃ :
         ∃ (π : TreeLikeResolution φ_subs_false_conv (BotClause (vars))), π.width ≤ W + 1 := by
