@@ -258,4 +258,14 @@ lemma Clause.resolve_satisfies_h_resolve_right {vars} {c₁ c₂ : Clause vars} 
   simp only [Finset.union_singleton, Finset.mem_insert, Finset.mem_union, Finset.mem_erase, ne_eq]
   tauto
 
+/-- Predicate: `ρ` is the partial assignment on `{x.variable}` that satisfies the literal `x`. -/
+abbrev Literal.IsSatAssignment {vars} (x : Literal vars)
+    (ρ : Assignment ({x.variable} : Finset Variable)) : Prop :=
+  ρ = fun _ _ => (x.polarity : Bool)
+
+/-- Predicate: `ρ` is the partial assignment on `{x.variable}` that falsifies the literal `x`. -/
+abbrev Literal.IsFalsAssignment {vars} (x : Literal vars)
+    (ρ : Assignment ({x.variable} : Finset Variable)) : Prop :=
+  ρ = fun _ _ => (¬x.polarity : Bool)
+
 #lint

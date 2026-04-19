@@ -9,7 +9,7 @@ import Mathlib.Data.Finset.Basic
 lemma lit_subst_is_Bot_false {vars}
     (l : Literal vars)
     (ρ_false : (Assignment ({l.variable} : Finset Variable)))
-    (h_value : ρ_false = (fun _ _ => (¬l.polarity : Bool))) :
+    (h_value : l.IsFalsAssignment ρ_false) :
     ({l} : Clause vars).substitute ρ_false = BotClause (vars \ {l.variable}):= by
   aesop (add safe apply clause_subst_eq_bot_of_falsified)
 
@@ -351,7 +351,7 @@ lemma width_closure {vars} (φ₁ φ₂ : CNFFormula vars) (W : ℕ) (C_0 : Clau
 lemma trivial_subs_unfold {vars}
     (x : Literal vars)
     (ρ_true : (Assignment ({x.variable} : Finset Variable)))
-    (h_value : ρ_true = (fun _ _ => (x.polarity : Bool)))
+    (h_value : x.IsSatAssignment ρ_true)
     (h_1 : ∀ l ∈ ρ_true.toClause, l.variable ∈ vars) :
     (ρ_true.toClause).convert vars h_1 = ({x.negate} : Clause vars) := by
   unfold Literal.negate Assignment.toClause Clause.convert
@@ -362,7 +362,7 @@ lemma trivial_subs_unfold {vars}
 lemma ufold_one_literal {vars} {φ : CNFFormula vars}
     (x : Literal vars) (h₀ : x.variable ∈ vars)
     (ρ_true : (Assignment ({x.variable} : Finset Variable)))
-    (h_value : ρ_true = (fun _ _ => (x.polarity : Bool)))
+    (h_value : x.IsSatAssignment ρ_true)
     (π_1 : TreeLikeRefutation (φ.substitute ρ_true))
     (fact₀ : {x.variable} ⊆ vars) :
     (TreeLikeResolution.unsubstitute_rhs ρ_true π_1) ⊆ ({x.negate} : Clause vars) := by
@@ -558,9 +558,9 @@ Key lemma used to prove size-width relation. Corresponds to Lemma 3.2 from Ben-S
 lemma width_combine (vars) {φ : CNFFormula vars}
     (x : Literal vars) (h₀ : x.variable ∈ vars)
     (ρ_true : (Assignment ({x.variable} : Finset Variable)))
-    (h_value : ρ_true = (fun _ _ => (x.polarity : Bool)))
+    (h_value : x.IsSatAssignment ρ_true)
     (ρ_false : (Assignment ({x.variable} : Finset Variable)))
-    (h_value_false : ρ_false = (fun _ _ => (¬x.polarity : Bool)))
+    (h_value_false : x.IsFalsAssignment ρ_false)
     (W : ℕ) (π_1 : TreeLikeRefutation (φ.substitute ρ_true)) (h_width_true : π_1.width ≤ W)
     (π_2 : TreeLikeRefutation (φ.substitute ρ_false)) (h_width_false : π_2.width ≤ W + 1)
     (h_clause_card : ∀ C ∈ φ, C.card ≤ W + 1) :
@@ -688,8 +688,8 @@ private lemma width_ind_combine
     (h_clause_card : ∀ C ∈ φ, C.card ≤ W_c)
     (lit : Literal s)
     {ρ_A ρ_B : Assignment ({lit.variable} : Finset Variable)}
-    (h_lit_A : ρ_A = (fun _ _ => (lit.polarity : Bool)))
-    (h_lit_B : ρ_B = (fun _ _ => (¬lit.polarity : Bool)))
+    (h_lit_A : lit.IsSatAssignment ρ_A)
+    (h_lit_B : lit.IsFalsAssignment ρ_B)
     (π_A' : TreeLikeRefutation (φ.substitute ρ_A))
     (h_A_width : π_A'.width ≤ (W - 1) + W_c)
     (π_B' : TreeLikeRefutation (φ.substitute ρ_B))
