@@ -180,34 +180,6 @@ lemma substitute_trivial_property_human_form {vars} {c : Clause vars} {l : Liter
     unfold Literal.convert Literal.restrict
     aesop
 
-lemma substitute_trivial_property {vars}
-    (φ : CNFFormula vars)
-    (x : Literal vars)
-    (C_0 : Clause vars)
-    (h_subs : (vars \ {x.variable}) ⊆ vars)
-    (ρ_false : (Assignment ({x.variable} : Finset Variable)))
-    (h_value_false : ρ_false = (fun _ _ => (¬x.polarity : Bool)))
-    (h_c : C_0 ∈ ((CNFFormula.simple_convert
-        (vars \ {x.variable}) vars (φ.substitute ρ_false) h_subs)))
-    (C_1 : Clause (vars \ {x.variable}))
-    (h_C_1_conv_left : C_1 ∈ (φ.substitute ρ_false))
-    (h_incl : ∀ l ∈ C_1, l.variable ∈ vars)
-    (h_C_1_conv_right : C_1.convert vars h_incl = C_0)
-    (C_2 : Clause vars)
-    (h_C_2_conv : C_2 ∈ φ ∧ C_2.substitute ρ_false = some C_1) :
-    C_2 ⊆ C_0 ∪ ({x} : Clause vars) := by
-  suffices C_0 =
-      ((C_2.substitute (fun _ _ => ¬x.polarity : Assignment {x.variable})).get (by aesop)).convert
-        vars (by
-          intro t
-          have := Literal.variable_mem_vars t
-          aesop) by
-    rw [this]
-    exact substitute_trivial_property_human_form
-
-  subst h_value_false
-  simp only [Bool.not_eq_true, Bool.decide_eq_false] at h_C_2_conv
-  simp_all
 
 @[aesop safe]
 lemma proof_size_positive {vars} {φ : CNFFormula vars} {c : Clause vars}
