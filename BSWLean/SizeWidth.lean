@@ -397,6 +397,15 @@ lemma single_literal_conversion {vars₁ vars₂ : Variables} {lit : Literal var
   unfold Clause.convert
   aesop
 
+lemma clause_width_smaller_proof_width {vars : Variables} {φ} {C : Clause vars}
+    (π : TreeLikeResolution φ C) : (C.card ≤ π.width) := by
+  induction π
+  · aesop
+  rename_i h_resolve π₁_ih π₂_ih
+  obtain ⟨left, right⟩ := h_resolve
+  unfold TreeLikeResolution.width
+  aesop
+
 
 
 def convert_proof (W : ℕ) {vars₁ vars₂ : Variables} {φ : CNFFormula vars₁} {C : Clause vars₁}
@@ -411,18 +420,10 @@ def convert_proof (W : ℕ) {vars₁ vars₂ : Variables} {φ : CNFFormula vars�
   have idea : ∀ c : Clause vars₁, (∀ l ∈ c, l.variable ∈ vars₂) := by
     aesop
 
-
   have idea' : Finset.card C ≤ W := by
-    induction π₁
-    · aesop
-    rename_i h_resolve π₁_ih π₂_ih
-    subst h_conv
-    obtain ⟨left, right⟩ := h_resolve
-    unfold TreeLikeResolution.width at h_width
-    simp_all only [Finset.union_singleton, sup_le_iff]
+    grind only [clause_width_smaller_proof_width]
 
   match π₁ with
-  -- CASE 1: The proof is just an axiom
   | .axiom_clause h_in =>
       let C_new := C.convert vars₂ (by exact fun l a ↦ idea C l a)
         have : C_new ∈ φ₁ := by
@@ -430,48 +431,27 @@ def convert_proof (W : ℕ) {vars₁ vars₂ : Variables} {φ : CNFFormula vars�
           unfold CNFFormula.simple_convert
           aesop
         let π₂ := TreeLikeResolution.axiom_clause (by aesop)
-
-        ⟨π₂, by
-        -- Width of an axiom is the size of the clause.
-        -- Since convert doesn't change the number of literals, width remains the same.
-          unfold TreeLikeResolution.width
-          aesop ⟩
-
-  -- CASE 2: The proof is a resolution step
+        ⟨π₂, by grind [convert_card, TreeLikeResolution.width]⟩
   | .resolve c₁ c₂ v h_v_mem h_v_not π_a π_b h_res =>
-      -- 1. Recursively convert the sub-proofs
-      -- (You need to split the width bound h_width into bounds for π_a and π_b)
       have idea₁ : π_a.width ≤ W := by
-        unfold TreeLikeResolution.width at h_width
-        subst h_conv
-        simp_all only [Finset.union_singleton, sup_le_iff, true_and]
-
+        grind [TreeLikeResolution.width, sup_le_iff]
       have idea₂ : π_b.width ≤ W := by
-        unfold TreeLikeResolution.width at h_width
-        subst h_conv
-        simp_all only [Finset.union_singleton, sup_le_iff, true_and]
+        grind [TreeLikeResolution.width, sup_le_iff]
 
       let ⟨π_a_new, h_wa⟩ := convert_proof W h_subs h_conv π_a idea₁
-        -- width π₁ = max |C| (max (width π_a) (width π_b)), so width π_a ≤ width π₁
-
-
       let ⟨π_b_new, h_wb⟩ := convert_proof W h_subs h_conv π_b idea₂
 
-      -- 2. Lift the resolution variable to the new context
       let v_new_mem := h_subs h_v_mem
 
       have fact₁ : ∀ l ∈ c₁, l.variable ∈ vars₂ := by
         aesop
-
       have fact₂ : ∀ l ∈ c₂, l.variable ∈ vars₂ := by
         aesop
-
       have fact₀ :  ∀ l ∈ C, l.variable ∈ vars₂ := by
         aesop
 
       have h_resolve : c₁.convert vars₂ fact₁ ⊆ C.convert vars₂ fact₀ ∪ {v.toLiteral v_new_mem} ∧
         c₂.convert vars₂ fact₂ ⊆ C.convert vars₂ fact₀ ∪ {v.toNegLiteral v_new_mem} := by
-
 
         constructor
 
@@ -500,12 +480,8 @@ def convert_proof (W : ℕ) {vars₁ vars₂ : Variables} {φ : CNFFormula vars�
         v v_new_mem (by aesop) π_a_new π_b_new h_resolve
 
       ⟨π_new, by
-        -- width is max of |C_new| and the sub-widths.
-        -- All these are ≤ W because the original ones were.
         unfold TreeLikeResolution.width
         aesop⟩
-
--- Tried to vibe code this one - ended up horribly...
 
 lemma width_respect_convert (vars₁ vars₂) (φ : CNFFormula vars₁)
    (φ₁ : CNFFormula vars₂) (h_subs : vars₁ ⊆ vars₂)
