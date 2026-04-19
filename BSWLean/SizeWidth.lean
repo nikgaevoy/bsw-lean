@@ -176,20 +176,6 @@ lemma var_in_vars_of_in_sdiff {vars sub_vars : Variables} {var : Variable}
     (h_4 : var ∈ vars \ sub_vars) : var ∈ vars := by
   grind
 
-lemma resolve_unsubstitute_subset (vars sub_vars : Variables) (φ : CNFFormula vars)
-    (var : Variable) (ρ : Assignment sub_vars) (c_2 c_3 : Clause (vars \ sub_vars))
-    (h_subset : sub_vars ⊆ vars) (h_4 : var ∈ vars \ sub_vars)
-    (p_1 : TreeLikeResolution (φ.substitute ρ) c_2)
-    (p_2 : TreeLikeResolution (φ.substitute ρ) c_3)
-    (inter_proof : Finset.disjUnion (vars \ sub_vars) sub_vars Finset.sdiff_disjoint = vars) :
-    ((p_1.unsubstitute_rhs ρ).resolve (p_2.unsubstitute_rhs ρ) var
-       (Finset.sdiff_subset h_4 : var ∈ vars)) ⊆
-    (((Clause.combine c_2 ρ.toClause Finset.sdiff_disjoint).convert_trivial
-      vars inter_proof).resolve
-      ((Clause.combine c_3 ρ.toClause Finset.sdiff_disjoint).convert_trivial
-        vars inter_proof) var (Finset.sdiff_subset h_4 : var ∈ vars)) := by
-  grind only [TreeLikeResolution.unsubstitute_rhs_variables, resolve_subsets]
-
 lemma resolve_combined_le_c1 (vars sub_vars : Variables) (var : Variable)
     (ρ : Assignment sub_vars) (c_1 c_2 c_3 : Clause (vars \ sub_vars))
     (h_4 : var ∈ vars \ sub_vars)
@@ -239,8 +225,9 @@ lemma resolve_ineq (vars sub_vars) (φ : CNFFormula vars) (var : Variable)
      vars inter_proof).resolve
     ((Clause.combine c_3 ρ.toClause
     Finset.sdiff_disjoint).convert_trivial vars inter_proof) var var_incl)
-  · exact Finset.card_le_card
-      (resolve_unsubstitute_subset vars sub_vars φ var ρ c_2 c_3 h_subset h_4 p_1 p_2 inter_proof)
+  · clear left right c_1 h_0
+    apply Finset.card_le_card
+    grind only [TreeLikeResolution.unsubstitute_rhs_variables, resolve_subsets]
 
   -- 2nd Bound: Setup the upper maximum bound
   trans Finset.card c_1 + Finset.card sub_vars
