@@ -622,15 +622,13 @@ lemma var_incl {vars} (v : Variable) (C : Clause vars) (h_v_in_vars : v ∈ vars
   unfold Literal.variable at h_sub
   simp_all
   obtain ⟨a, h_sub⟩ := h_sub
+  have : a = v.toLiteral h_v_in_vars a.polarity := by aesop (add safe unfold Variable.toLiteral)
   obtain ⟨h_sub_left, h_sub_right⟩ := h_sub
   by_cases a.polarity
   case pos h_v =>
-    have : a = v.toLiteral h_v_in_vars true := by aesop (add safe unfold Variable.toLiteral)
     grind
   case neg h_v =>
-    have : a = v.toLiteral h_v_in_vars false := by aesop (add safe unfold Variable.toLiteral)
     grind
-
 
 
 /-!
