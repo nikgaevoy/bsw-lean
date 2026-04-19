@@ -28,8 +28,8 @@ inductive TreeLikeResolution {vars} (φ : CNFFormula vars) : (c : Clause vars) �
       (h_v_not_mem_c : v ∉ c.variables)
       (π₁ : TreeLikeResolution φ c₁)
       (π₂ : TreeLikeResolution φ c₂)
-      (h_resolve : (c₁ ⊆ c ∪ { v.toLiteral h_v_mem_vars }) ∧
-                   (c₂ ⊆ c ∪ { v.toNegLiteral h_v_mem_vars }))
+      (h_resolve : (c₁ ⊆ c ∪ { v.toLiteral h_v_mem_vars true }) ∧
+                   (c₂ ⊆ c ∪ { v.toLiteral h_v_mem_vars false }))
       : TreeLikeResolution φ c
 
 /-- Empty clause. -/
@@ -63,7 +63,7 @@ lemma tree_like_proof_is_correct {vars} {φ : CNFFormula vars} {c : Clause vars}
       simp only [h_l₁_eval_a, and_true]
       contrapose! h_l₁_in_c₁
       simp only [Finset.union_singleton, Finset.mem_insert, h_l₁_in_c₁, or_false]
-      suffices l₁.eval ρ ≠ (v.toLiteral h_v_mem_vars).eval ρ by
+      suffices l₁.eval ρ ≠ (v.toLiteral h_v_mem_vars true).eval ρ by
         contrapose! this
         simp only [this]
       aesop (add safe unfold Literal.eval, safe unfold Variable.toLiteral)
@@ -74,10 +74,10 @@ lemma tree_like_proof_is_correct {vars} {φ : CNFFormula vars} {c : Clause vars}
       simp only [h_l₂_eval_a, and_true]
       contrapose! h_l₂_in_c₂
       simp only [Finset.union_singleton, Finset.mem_insert, h_l₂_in_c₂, or_false]
-      suffices l₂.eval ρ ≠ (v.toNegLiteral h_v_mem_vars).eval ρ by
+      suffices l₂.eval ρ ≠ (v.toLiteral h_v_mem_vars false).eval ρ by
         contrapose! this
         simp only [this]
-      aesop (add safe unfold Literal.eval, safe unfold Variable.toNegLiteral)
+      aesop (add safe unfold Literal.eval, safe unfold Variable.toLiteral)
 
 /-- Tree-like Resolution is sound. -/
 theorem tree_like_refutation_implies_unsat {vars} {φ : CNFFormula vars}
@@ -262,7 +262,7 @@ lemma TreeLikeResolution.unsubstitute_rhs_variables {vars sub_vars} {c} {φ : CN
       apply finset_right_cup
       let h' := h.right
       apply Clause.convert_maintains_subset_insert
-      all_goals grind [Literal.variable, Variable.toNegLiteral, Literal.convert]
+      all_goals grind [Literal.variable, Variable.toLiteral, Literal.convert]
 
 /-- Transforms `φ.substitute ρ ⊢ c` into `φ ⊢ c ∨ ¬ρ`. Has to be noncomputable, because in the
 general setting, we need the axiom of choice to recover a clause in the axiom clause case.
@@ -302,8 +302,8 @@ noncomputable def TreeLikeResolution.unsubstitute {vars} {sub_vars} {c} {φ : CN
           aesop
         aesop
 
-      have : (c₁' ⊆ c' ∪ { x.toLiteral h_in }) ∧
-             (c₂' ⊆ c' ∪ { x.toNegLiteral h_in }) := by
+      have : (c₁' ⊆ c' ∪ { x.toLiteral h_in true }) ∧
+             (c₂' ⊆ c' ∪ { x.toLiteral h_in false }) := by
         constructor
         · unfold c' unsubstitute_rhs
           simp [h_match]
@@ -417,15 +417,15 @@ theorem unsat_implies_tree_like_refutation {vars} {φ : CNFFormula vars}
         also_vars := by grind
     have : vars' ⊆ also_vars := by exact Finset.subset_insert v vars'
 
-    let v_pos : Clause also_vars := {Variable.toLiteral v (Finset.mem_insert_self v vars')}
-    let v_neg : Clause also_vars := {Variable.toNegLiteral v (Finset.mem_insert_self v vars')}
+    let v_pos : Clause also_vars := {Variable.toLiteral v (Finset.mem_insert_self v vars') true}
+    let v_neg : Clause also_vars := {Variable.toLiteral v (Finset.mem_insert_self v vars') false}
 
     have ρ_true_clause : ρ_true.toClause.convert also_vars (by aesop) = v_neg := by
       ext l
       unfold v_neg
       simp only [Finset.mem_singleton]
       constructor
-      · simp_all [Variable.toNegLiteral, Assignment.toClause, Clause.convert, Literal.convert,
+      · simp_all [Variable.toLiteral, Assignment.toClause, Clause.convert, Literal.convert,
           ρ_true]
       · aesop
 

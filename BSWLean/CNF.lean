@@ -43,23 +43,14 @@ structure Literal (vars : Variables) where
   polarity : Bool
 deriving DecidableEq
 
-/-- Constructor for a positive literal. -/
-def Variable.toLiteral {vars} (v : Variable) (h_v_mem_vars : v ∈ vars) : Literal vars :=
-  Literal.mk ⟨v, h_v_mem_vars⟩ true
+/-- Constructor for a literal with the given polarity. -/
+def Variable.toLiteral {vars} (v : Variable) (h_v_mem_vars : v ∈ vars) (p : Bool) : Literal vars :=
+  Literal.mk ⟨v, h_v_mem_vars⟩ p
 
-/-- Constructor for a negative literal. -/
-def Variable.toNegLiteral {vars} (v : Variable) (h_v_mem_vars : v ∈ vars) : Literal vars :=
-  Literal.mk ⟨v, h_v_mem_vars⟩ false
-
-/-- Constructor for a positive literal. -/
+/-- Constructor for a literal with the given polarity. -/
 @[simp]
-def Subtype.toLiteral {vars} (v : { v : Variable // v ∈ vars }) : Literal vars :=
-  (↑v : Variable).toLiteral <| by aesop
-
-/-- Constructor for a negative literal. -/
-@[simp]
-def Subtype.toNegLiteral {vars} (v : { v : Variable // v ∈ vars }) : Literal vars :=
-  (↑v : Variable).toNegLiteral <| by aesop
+def Subtype.toLiteral {vars} (v : { v : Variable // v ∈ vars }) (p : Bool) : Literal vars :=
+  (↑v : Variable).toLiteral (by aesop) p
 
 /-- Projection on a variable. -/
 def Literal.variable {vars} (l : Literal vars) : Variable := l.v
@@ -96,20 +87,12 @@ lemma Literal.reduce_neg_self {vars} {l : Literal vars} (h : ¬l.polarity) :
     (Literal.mk ⟨l.variable, by aesop⟩ false) = l := by aesop
 
 @[simp]
-lemma Literal.reduce_toLiteral_variable {vars} {v : Variable} {h : v ∈ vars} :
-    (v.toLiteral h).variable = v := by rfl
+lemma Literal.reduce_toLiteral_variable {vars} {v : Variable} {h : v ∈ vars} {p : Bool} :
+    (v.toLiteral h p).variable = v := by rfl
 
 @[simp]
-lemma Literal.reduce_toNegLiteral_variable {vars} {v : Variable} {h : v ∈ vars} :
-    (v.toNegLiteral h).variable = v := by rfl
-
-@[simp]
-lemma Literal.reduce_toLiteral_polarity {vars} {v : Variable} {h : v ∈ vars} :
-    (v.toLiteral h).polarity = true := by rfl
-
-@[simp]
-lemma Literal.reduce_toNegLiteral_polarity {vars} {v : Variable} {h : v ∈ vars} :
-    (v.toNegLiteral h).polarity = false := by rfl
+lemma Literal.reduce_toLiteral_polarity {vars} {v : Variable} {h : v ∈ vars} {p : Bool} :
+    (v.toLiteral h p).polarity = p := by rfl
 
 /-- Clauses are defined as finite set of literals, so we lose the order of them. -/
 abbrev Clause (vars : Variables) := Finset (Literal vars)
@@ -217,7 +200,7 @@ lemma Clause.eval_eq_false_iff_all_falsified_literals {vars} (c : Clause vars)
 /-- The result of application of the Resolution rule to a pair of clauses.
 Does not require the resolution variable `x` to be present in both clauses. -/
 def Clause.resolve {vars} (c₁ c₂ : Clause vars) (x : Variable) (h_x : x ∈ vars) : Clause (vars) :=
-  c₁.erase (x.toLiteral h_x) ∪ c₂.erase (x.toNegLiteral h_x)
+  c₁.erase (x.toLiteral h_x true) ∪ c₂.erase (x.toLiteral h_x false)
 
 @[aesop unsafe, grind →]
 lemma Clause.not_in_variables_subset {vars} {c₁ c₂ : Clause vars} {x : Variable}
@@ -244,7 +227,7 @@ lemma Clause.resolve_maintains_subset {vars} {c₁ c₁' c₂ c₂' : Clause var
 
 lemma Clause.resolve_satisfies_h_resolve_left {vars} {c₁ c₂ : Clause vars} {v : Variable}
     (h_v_mem_vars : v ∈ vars) :
-    (c₁ ⊆ c₁.resolve c₂ v h_v_mem_vars ∪ { v.toLiteral h_v_mem_vars }) := by
+    (c₁ ⊆ c₁.resolve c₂ v h_v_mem_vars ∪ { v.toLiteral h_v_mem_vars true }) := by
   unfold Clause.resolve
   intro l h
   simp only [Finset.union_singleton, Finset.mem_insert, Finset.mem_union, Finset.mem_erase, ne_eq]
@@ -252,7 +235,7 @@ lemma Clause.resolve_satisfies_h_resolve_left {vars} {c₁ c₂ : Clause vars} {
 
 lemma Clause.resolve_satisfies_h_resolve_right {vars} {c₁ c₂ : Clause vars} {v : Variable}
     (h_v_mem_vars : v ∈ vars) :
-    (c₂ ⊆ c₁.resolve c₂ v h_v_mem_vars ∪ { v.toNegLiteral h_v_mem_vars }) := by
+    (c₂ ⊆ c₁.resolve c₂ v h_v_mem_vars ∪ { v.toLiteral h_v_mem_vars false }) := by
   unfold Clause.resolve
   intro l h
   simp only [Finset.union_singleton, Finset.mem_insert, Finset.mem_union, Finset.mem_erase, ne_eq]

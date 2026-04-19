@@ -30,8 +30,8 @@ lemma resolve_substitute_left {vars sub_vars} (c₁ c₂ : Clause vars) {x : Var
   obtain ⟨l₂, ⟨⟨h_l₂_in_c₂, h_l₂_var_in_sub_vars⟩, h_l₂_eval⟩⟩ := h₂
   by_contra!
   have h_l₂_var_not_x : l₂.variable ≠ x := by aesop
-  have : l₂ ≠ x.toNegLiteral h_x_in := by
-    unfold Literal.variable Variable.toNegLiteral at *
+  have : l₂ ≠ x.toLiteral h_x_in false := by
+    unfold Literal.variable Variable.toLiteral at *
     aesop
   have := h_res (l₂.restrict (vars ∩ sub_vars) (by aesop)) l₂
     (by aesop) h_l₂_var_in_sub_vars (by rfl)
@@ -54,7 +54,7 @@ lemma resolve_substitute_right {vars sub_vars} (c₁ c₂ : Clause vars) {x : Va
   obtain ⟨l₁, ⟨⟨h_l₁_in_c₁, h_l₁_var_in_sub_vars⟩, h_l₁_eval⟩⟩ := h₁
   by_contra!
   have h_l₁_var_not_x : l₁.variable ≠ x := by aesop
-  have : l₁ ≠ x.toLiteral h_x_in := by
+  have : l₁ ≠ x.toLiteral h_x_in true := by
     unfold Literal.variable Variable.toLiteral at *
     aesop
   have := h_res (l₁.restrict (vars ∩ sub_vars) (by aesop)) l₁
@@ -143,8 +143,8 @@ lemma TreeLikeResolution.restrict_rhs_subset_substitute {vars₁ vars₂ : Varia
       rw [Finset.mem_filterMap] at h_l
       obtain ⟨l', ⟨h_l'_mem, h_l_eval⟩⟩ := h_l
       rw [Finset.mem_filterMap]
-      have h_l'_neq : l' ≠ v.toNegLiteral h_v_mem := by
-        unfold Literal.variable Variable.toNegLiteral at *
+      have h_l'_neq : l' ≠ v.toLiteral h_v_mem false := by
+        unfold Literal.variable Variable.toLiteral at *
         aesop
       use l'
       simp only [Finset.mem_filter, Finset.mem_union, Finset.mem_erase, ne_eq,
@@ -176,7 +176,7 @@ lemma TreeLikeResolution.restrict_rhs_subset_substitute {vars₁ vars₂ : Varia
         rw [Finset.mem_filterMap] at h_l
         obtain ⟨l', ⟨h_l'_mem, h_l_eval⟩⟩ := h_l
         rw [Finset.mem_filterMap]
-        have h_l'_neq : l' ≠ v.toLiteral h_v_mem := by
+        have h_l'_neq : l' ≠ v.toLiteral h_v_mem true := by
           unfold Literal.variable Variable.toLiteral at *
           aesop
         use l'
@@ -234,7 +234,7 @@ lemma TreeLikeResolution.restrict_rhs_subset_substitute {vars₁ vars₂ : Varia
               · exact h_l'_mem.right
               right
               constructor
-              · unfold Literal.variable Variable.toNegLiteral at *
+              · unfold Literal.variable Variable.toLiteral at *
                 aesop
               · exact h_l'_mem.left
           case neg =>
@@ -532,9 +532,9 @@ def TreeLikeResolution.regularize_rhs {vars : Variables} {φ : CNFFormula vars}
   match π with
   | .axiom_clause _ => c
   | .resolve _ _ v h_v_mem _ π₁ π₂ _ =>
-    if v.toLiteral h_v_mem ∉ π₁.regularize_rhs then
+    if v.toLiteral h_v_mem true ∉ π₁.regularize_rhs then
       π₁.regularize_rhs
-    else if v.toNegLiteral h_v_mem ∉ π₂.regularize_rhs then
+    else if v.toLiteral h_v_mem false ∉ π₂.regularize_rhs then
       π₂.regularize_rhs
     else
       π₁.regularize_rhs.resolve π₂.regularize_rhs v h_v_mem
@@ -556,13 +556,13 @@ def TreeLikeResolution.regularize {vars : Variables} {φ : CNFFormula vars}
     let c₁' := π₁.regularize_rhs
     let c₂' := π₂.regularize_rhs
 
-    if h₁ : v.toLiteral h_v_mem ∉ c₁' then
+    if h₁ : v.toLiteral h_v_mem true ∉ c₁' then
       π₁.regularize.convert (by
         conv =>
           rhs
           unfold regularize_rhs
         aesop)
-    else if h₂ : v.toNegLiteral h_v_mem ∉ c₂' then
+    else if h₂ : v.toLiteral h_v_mem false ∉ c₂' then
       π₂.regularize.convert (by
         conv =>
           rhs
@@ -575,8 +575,8 @@ def TreeLikeResolution.regularize {vars : Variables} {φ : CNFFormula vars}
           apply clause_variable_mem_variables_maintains_subset _ this
           aesop
         contradiction
-      have h_res' : c₁' ⊆ π.regularize_rhs ∪ {v.toLiteral h_v_mem} ∧
-          c₂' ⊆ π.regularize_rhs ∪ {v.toNegLiteral h_v_mem} := by
+      have h_res' : c₁' ⊆ π.regularize_rhs ∪ {v.toLiteral h_v_mem true} ∧
+          c₂' ⊆ π.regularize_rhs ∪ {v.toLiteral h_v_mem false} := by
         unfold regularize_rhs
         simp only [h, h₁, h₂, c₁', c₂', ↓reduceIte]
         constructor
@@ -595,14 +595,14 @@ lemma TreeLikeResolution.regularize_size {vars : Variables} {φ : CNFFormula var
     let c₁' := π₁.regularize_rhs
     let c₂' := π₂.regularize_rhs
 
-    if h₁ : v.toLiteral h_v_mem ∉ c₁' then
+    if h₁ : v.toLiteral h_v_mem true ∉ c₁' then
       unfold regularize
       simp only [h₁, not_false_eq_true, ↓reduceDIte, convert_trivial_size, ge_iff_le, c₁']
       conv =>
         rhs
         unfold size
       omega
-    else if h₂ : v.toNegLiteral h_v_mem ∉ c₂' then
+    else if h₂ : v.toLiteral h_v_mem false ∉ c₂' then
       unfold regularize
       simp only [h₁, ↓reduceDIte, h₂, not_false_eq_true, convert_trivial_size, ge_iff_le, c₂', c₁']
       conv =>
@@ -636,18 +636,18 @@ lemma TreeLikeResolution.regularize_isRegularRes {vars : Variables} {φ : CNFFor
     have h_π₁ := ih₁ π₁ rfl
     have h_π₂ := ih₂ π₂ rfl
 
-    if h₁ : v.toLiteral h_v_mem ∉ c₁' then
+    if h₁ : v.toLiteral h_v_mem true ∉ c₁' then
       unfold regularize
       simp [h₁, c₁', h_π₁]
-    else if h₂ : v.toNegLiteral h_v_mem ∉ c₂' then
+    else if h₂ : v.toLiteral h_v_mem false ∉ c₂' then
       unfold regularize
       simp [h₁, c₁', h₂, c₂', h_π₂]
     else
       unfold regularize
       simp only [h₁, ↓reduceDIte, h₂, c₂', c₁']
       unfold IsRegularRes
-      have : (v.toLiteral h_v_mem).variable ∈ c₁'.variables := by grind
-      have : (v.toNegLiteral h_v_mem).variable ∈ c₂'.variables := by grind
+      have : (v.toLiteral h_v_mem true).variable ∈ c₁'.variables := by grind
+      have : (v.toLiteral h_v_mem false).variable ∈ c₂'.variables := by grind
       aesop
 
 lemma resolution_regularize {vars} {φ : CNFFormula vars} {c : Clause vars}

@@ -27,8 +27,8 @@ inductive DagLikeResolutionStep {vars} (φ : CNFFormula vars) : Blackboard vars 
       (h_v_not_mem_c : v ∉ c.variables)
       (h₁ : c₁ ∈ b)
       (h₂ : c₂ ∈ b)
-      (h_resolve : (c₁ ⊆ c ∪ { v.toLiteral h_v_mem_vars }) ∧
-                   (c₂ ⊆ c ∪ { v.toNegLiteral h_v_mem_vars }))
+      (h_resolve : (c₁ ⊆ c ∪ { v.toLiteral h_v_mem_vars true }) ∧
+                   (c₂ ⊆ c ∪ { v.toLiteral h_v_mem_vars false }))
       : DagLikeResolutionStep φ (insert c b)
 
 /-- Defines the fact that we can make the inference `φ ⊢ c`, where `c` is a clause. -/

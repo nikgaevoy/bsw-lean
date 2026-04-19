@@ -31,12 +31,8 @@ lemma Literal.restrict_variable {vars sub_vars} {l : Literal vars} (h_mem) :
     (l.restrict sub_vars h_mem).variable = l.variable := by aesop
 
 @[simp, grind =]
-lemma Literal.restrict_toLiteral {vars sub_vars} {v : Variable} (h₁ : v ∈ vars) (h₂) :
-    ((v.toLiteral h₁).restrict sub_vars h₂) = (v.toLiteral h₂) := by aesop
-
-@[simp, grind =]
-lemma Literal.restrict_toNegLiteral {vars sub_vars} {v : Variable} (h₁ : v ∈ vars) (h₂) :
-    ((v.toNegLiteral h₁).restrict sub_vars h₂) = (v.toNegLiteral h₂) := by aesop
+lemma Literal.restrict_toLiteral {vars sub_vars} {v : Variable} (h₁ : v ∈ vars) (h₂) (p : Bool) :
+    ((v.toLiteral h₁ p).restrict sub_vars h₂) = (v.toLiteral h₂ p) := by aesop
 
 lemma Literal.restrict_inj {vars sub_vars} {l₁ l₂ : Literal vars}
     (h_l₁_mem : l₁.variable ∈ sub_vars) (h_l₂_mem : l₂.variable ∈ sub_vars)
@@ -259,7 +255,7 @@ lemma Clause.resolve_substitute_isNone {vars sub_vars} {c₁ c₂ : Clause vars}
         subst h₂
         right
         suffices l₂'.polarity by
-          grind [Variable.toNegLiteral]
+          grind [Variable.toLiteral]
         aesop
       else
         use l₁'
@@ -300,7 +296,7 @@ lemma Clause.resolve_substitute_isNone {vars sub_vars} {c₁ c₂ : Clause vars}
       simp only [Finset.mem_union, Finset.mem_erase, ne_eq]
       right
       have : l₂.variable = l₂'.variable := by aesop
-      grind [Variable.toNegLiteral]
+      grind [Variable.toLiteral]
     use l₂
 
 @[simp]
@@ -416,7 +412,7 @@ lemma Clause.substitute_resolve_eq_resolve_substitute {vars sub_vars} {c₁ c₂
       constructor
       · by_contra!
         rw [Literal.ext_iff] at h_l'_neq
-        simp_all only [Variable.toNegLiteral]
+        simp_all only [Variable.toLiteral]
         have : ¬l.polarity := by grind
         have : l.variable = v := by grind
         have : (l'.variable = v ∧ ¬l'.polarity) := by grind

@@ -19,7 +19,7 @@ def Assignment.negVariable {vars} (ρ : Assignment vars) (v : Variable) : Option
 
 lemma Assignment.negVariable_inj {vars} {ρ : Assignment vars} {x₁ x₂ : Variable} {y : Literal vars}
     (h_y_in_mp_x1 : y ∈ ρ.negVariable x₁) (h_y_in_mp_x2 : y ∈ ρ.negVariable x₂) : x₁ = x₂ := by
-  grind [Assignment.negVariable, Variable.toLiteral, Variable.toNegLiteral]
+  grind [Assignment.negVariable, Variable.toLiteral]
 
 /-- The assignment to clause conversion function. -/
 def Assignment.toClause {vars} (ρ : Assignment vars) : Clause vars :=
