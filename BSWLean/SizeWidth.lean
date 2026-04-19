@@ -74,7 +74,6 @@ lemma resolve_subsets_trick (x : Variable) (vars) (c₁ c₂ c₃ : Clause (vars
   unfold Clause.resolve
   have idea : (Finset.erase c₂ (x.toLiteral h_x) ∪ Finset.erase c₃ (x.toNegLiteral h_x)) ⊆ c₁
     := by
-    simp_all only [Finset.union_singleton]
     grind
   exact Finset.card_le_card idea
 

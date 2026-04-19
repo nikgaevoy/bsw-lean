@@ -94,8 +94,4 @@ Bigger theorems — notably `unsat_implies_tree_like_refutation` and those in `S
 
 Some expected lemmas were missing. For example, we had to prove by induction that `filterMap` does not increase cardinality (the `filterMap_card` lemma in `Substitutions.lean`) — the standard library has the analogue for `filter` and `map` separately, but `filterMap` is not defined as their composition and has no off-the-shelf bound.
 
-## Tactic patterns used throughout
 
-- `aesop` does a lot of the heavy lifting; when the default search misses, augment it with `(add safe unfold Foo)` or `(add unsafe Bar)`.
-- `grind` handles most arithmetic and membership goals; annotate definitions with `@[grind .]` or `@[grind =]` to expose them to it.
-- Feeding `@[simp]`, `@[aesop safe]`, or `@[grind →]` to recurring lemmas is often the difference between a two-line proof and a twenty-line one.
