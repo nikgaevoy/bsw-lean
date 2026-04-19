@@ -4,28 +4,14 @@ import Mathlib.Data.Finset.Basic
 
 
 
+
+
 lemma lit_subst_is_Bot_false {vars}
     (l : Literal vars)
     (ρ_false : (Assignment ({l.variable} : Finset Variable)))
     (h_value : ρ_false = (fun _ _ => (¬l.polarity : Bool))) :
     ({l} : Clause vars).substitute ρ_false = BotClause (vars \ {l.variable}):= by
-  unfold Clause.substitute
-  subst h_value
-  simp_all only [Bool.not_eq_true, Bool.decide_eq_false, Option.ite_none_left_eq_some,
-    Option.some.injEq]
-  apply And.intro
-  · have : l.variable ∈ (vars ∩ {l.variable}) := by aesop
-    let l' : Literal (vars ∩ {l.variable}) := l.convert (vars ∩ {l.variable}) this
-    have : (({l} : Clause vars).split {l.variable}).1 = ({l'} :
-        Clause ((vars) ∩ {l.variable})) := by
-      unfold Clause.split
-      simp_all [l']
-      unfold Literal.convert
-      aesop
-    simp_all only [l']
-    unfold Literal.convert Assignment.restrict Clause.eval Literal.eval
-    aesop
-  · aesop
+  aesop (add safe apply clause_subst_eq_bot_of_falsified)
 
 
 
@@ -673,7 +659,8 @@ lemma width_combine (vars) {φ : CNFFormula vars}
       change TreeLikeResolution φ_subs_false_conv (BotClause vars) at π_cand
       exact ⟨π_cand, h_cand_width⟩
 
-    obtain ⟨π_final, final_proof⟩ := width_closure φ φ_subs_false_conv (W + 1) (BotClause vars) idea₂ idea₃
+    obtain ⟨π_final, final_proof⟩ :=
+      width_closure φ φ_subs_false_conv (W + 1) (BotClause vars) idea₂ idea₃
     exact ⟨π_final, by subst h_value; grind⟩
 
 def getRootVariable {vars} {φ : CNFFormula vars} {c : Clause vars}

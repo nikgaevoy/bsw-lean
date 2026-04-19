@@ -234,4 +234,27 @@ lemma size_one_proof {vars} (φ : CNFFormula vars)
     · aesop
     · aesop
 
+/-- Substituting a clause by an assignment that falsifies every literal yields the empty clause. -/
+lemma clause_subst_eq_bot_of_falsified {vars sub_vars}
+    (c : Clause vars) (ρ : Assignment sub_vars)
+    (h : ∀ l ∈ c, ∃ h_mem : l.variable ∈ sub_vars, ρ l.variable h_mem ≠ l.polarity) :
+    c.substitute ρ = BotClause (vars \ sub_vars) := by
+  unfold Clause.substitute Clause.split Clause.shrink BotClause
+  simp_all only [Bool.not_eq_true, Option.ite_none_left_eq_some, Option.some.injEq]
+  refine ⟨?_, ?_⟩
+  · rw [Clause.eval_eq_false_iff_all_falsified_literals]
+    intro l' hl'
+    simp only [Finset.mem_filterMap, Finset.mem_filter, Option.dite_none_right_eq_some,
+      Option.some.injEq, and_exists_self] at hl'
+    obtain ⟨l, ⟨hl_in, _⟩, h_eq⟩ := hl'
+    subst h_eq
+    simp only [Literal.eval, Assignment.restrict, Literal.restrict]
+    obtain ⟨_, h_pol⟩ := h l hl_in
+    simpa using h_pol
+  · ext l'
+    simp only [Finset.mem_filterMap, Finset.mem_filter, Option.dite_none_right_eq_some,
+      Option.some.injEq, and_exists_self, Finset.notMem_empty, iff_false, not_exists]
+    rintro l ⟨hl_in, hl_not_in⟩ _
+    exact hl_not_in (h l hl_in).1
+
 #lint
