@@ -460,7 +460,6 @@ def convert_proof (W : ℕ) {vars₁ vars₂ : Variables} {φ : CNFFormula vars�
 
         · clear idea h_v_not h_width fact₁
             idea₁ idea₂ idea' h_conv π_a_new π_a π_b h_wa π_b_new h_wb π₁ φ φ₁
-
           trans (C ∪ ({v.toNegLiteral h_v_mem} : Clause vars₁)).convert vars₂ (by aesop)
           · grind only [loose_convert]
           · grind [single_literal_conversion,
@@ -523,10 +522,8 @@ private lemma clause_card_substitute_le {vars sub_vars} {φ : CNFFormula vars}
 private lemma resolve_axiom_with_negate {vars} {φ : CNFFormula vars}
     {x : Literal vars} {C_0 C_2 : Clause vars} {W : ℕ}
     (h_v_not_mem : x.variable ∉ C_0.variables)
-    (h_C2_in_φ : C_2 ∈ φ)
-    (h_C2_sub : C_2 ⊆ C_0 ∪ {x})
-    (h_C0_card : C_0.card ≤ W + 1)
-    (h_C2_card : C_2.card ≤ W + 1)
+    (h_C2_in_φ : C_2 ∈ φ) (h_C2_sub : C_2 ⊆ C_0 ∪ {x})
+    (h_C0_card : C_0.card ≤ W + 1) (h_C2_card : C_2.card ≤ W + 1)
     (π_neg : TreeLikeResolution φ {x.negate})
     (h_neg_width : π_neg.width ≤ W + 1) :
     ∃ π : TreeLikeResolution φ C_0, π.width ≤ W + 1 := by
@@ -587,9 +584,8 @@ lemma width_combine (vars) {φ : CNFFormula vars}
       intro C_0 h_c
       have entry₁ : ∃ C_1 ∈ φ_subs_false_unconv,
           (C_1.convert vars (by exact fun l a ↦ fact₁ C_1 l a)) = C_0 := by
-        unfold φ_subs_false_conv CNFFormula.simple_convert at h_c
-        rw [Finset.mem_image] at h_c
-        exact h_c
+        aesop (add safe unfold [CNFFormula.simple_convert])
+
       obtain ⟨C_1, h_C_1_conv_left, h_C_1_conv_right⟩ := entry₁
       obtain ⟨C_2, h_C2_in_φ, h_C2_sub⟩ := CNFFormula.substitute_preimage h_C_1_conv_left
 
@@ -605,7 +601,7 @@ lemma width_combine (vars) {φ : CNFFormula vars}
           exact absurd (hl_eq ▸ var_mem_of_literal_mem l) (by simp)
         aesop
       let π_new : TreeLikeResolution φ {x.negate} := h_eq ▸ π_1_unfolded
-      
+
       have idea_new : π_new.width ≤ W + 1 := by grind
 
       exact resolve_axiom_with_negate h_v_not_mem_c h_C2_in_φ h_left
