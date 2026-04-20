@@ -686,37 +686,25 @@ theorem width_imply_size_ind_version (W : ℕ)
             π = TreeLikeResolution.axiom_clause h_c_in_φ := by
           exact axiom_if_none π h_x
         use π
-        obtain ⟨C, h_C⟩ := this
-        unfold TreeLikeResolution.width
-        subst h_C
-        simp_all only [Finset.card_empty, zero_le]
+        grind only [Finset.card_empty, zero_le, TreeLikeResolution.width]
       case neg h_xx =>
         obtain ⟨h_reg, h_size_trans⟩ := h_reg
         have h_size :  TreeLikeResolution.size π ≤ 2 ^ (W) := by
           omega
         by_cases (W = 0)
         case pos h_W_eq =>
-          have : π.size ≤ 1 := by
-            subst h_W_eq
-            simp_all only [not_lt_zero', not_isEmpty_of_nonempty, IsEmpty.forall_iff, forall_const,
-              pow_zero, zero_add]
-          have : π.width ≤ W_c := by
-            exact size_one_proof φ W_c h_clause_card π this
+          have : π.size ≤ 1 := by aesop
+          have : π.width ≤ W_c := size_one_proof φ W_c h_clause_card π this
           use π
-          trans W_c
-          · trivial
-          · omega
+          omega
         case neg h_W_neq =>
         let v : Variable := (getRootVariable π).get (Option.ne_none_iff_isSome.mp h_xx)
         have h_v_incl : v ∈ s :=
           root_var_in_vars π v (Option.some_get _).symm
 
         let smaller_set := s.erase v
-
         have h_sub : smaller_set ⊂ s := Finset.erase_ssubset h_v_incl
-
         have ih' := ih smaller_set
-
         simp_all
 
         cases π with
@@ -780,10 +768,7 @@ theorem width_imply_size_ind_version (W : ℕ)
               have ih_1 := ih_0 (W - 1) ineq₁
                 (s \ {v}) (φ.substitute ρ_true) h_clause_subs_width_true π_1 idea_0
               obtain ⟨π_1', idea_00'⟩ := ih_1
-              have idea_10 : π_2.size ≤ 2^(W) := by
-                trans π₁.size
-                · exact h_π_2
-                · exact h_gen_size_lb.left
+              have idea_10 : π_2.size ≤ 2^(W) := by omega
               have : smaller_set = s \ {v} := Finset.erase_eq s v
               rw[this] at ih'
               have ih'_1 := ih' (φ.substitute ρ_false) h_clause_subs_width_false π_2 idea_10
