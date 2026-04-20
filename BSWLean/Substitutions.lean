@@ -376,7 +376,6 @@ lemma Clause.substitute_resolve_eq_resolve_substitute {vars sub_vars} {c₁ c₂
         constructor
         swap
         · assumption
-        left
         grind
     case h.mp.inr h =>
       obtain ⟨h_neq, ⟨l', ⟨⟨h_l'_in, h_l'_var⟩, h_restrict⟩⟩⟩ := h
@@ -385,7 +384,6 @@ lemma Clause.substitute_resolve_eq_resolve_substitute {vars sub_vars} {c₁ c₂
         constructor
         swap
         · assumption
-        right
         grind
   · intro h_l
     simp_all only [Finset.mem_filterMap, Finset.mem_filter, Finset.mem_union, Finset.mem_erase,
@@ -403,7 +401,6 @@ lemma Clause.substitute_resolve_eq_resolve_substitute {vars sub_vars} {c₁ c₂
         have : l.variable = v := by grind
         have : (l'.variable = v ∧ l'.polarity) := by grind
         contradiction
-
       use l'
       use by aesop
     case h.mpr.inr h =>

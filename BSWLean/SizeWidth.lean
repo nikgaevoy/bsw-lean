@@ -315,15 +315,6 @@ lemma width_closure {vars} (φ₁ φ₂ : CNFFormula vars) (W : ℕ) (C_0 : Clau
   use π₁'
   aesop
 
-lemma trivial_subs_unfold {vars}
-    (x : Literal vars)
-    (ρ_true : (Assignment ({x.variable} : Finset Variable)))
-    (h_value : x.IsAssignment x.polarity ρ_true)
-    (h_1 : ∀ l ∈ ρ_true.toClause, l.variable ∈ vars) :
-    (ρ_true.toClause).convert vars h_1 = ({x.negate} : Clause vars) := by
-  unfold Literal.negate Assignment.toClause Clause.convert
-  aesop
-
 lemma ufold_one_literal {vars} {φ : CNFFormula vars}
     (x : Literal vars) (h₀ : x.variable ∈ vars)
     (ρ_true : (Assignment ({x.variable} : Finset Variable)))
@@ -344,7 +335,8 @@ lemma ufold_one_literal {vars} {φ : CNFFormula vars}
     unfold Clause.combine
     simp
     unfold Clause.convert_trivial
-    grind [trivial_subs_unfold, Clause.convert_convert, subset_refl]
+    rw [Clause.convert_convert, trivial_subs_unfold x x.polarity ρ_true h_value]
+    simp [Literal.negate]
 
 --lemma local_convertion
 
@@ -699,7 +691,6 @@ theorem width_imply_size_ind_version (W : ℕ)
         subst h_C
         simp_all only [Finset.card_empty, zero_le]
       case neg h_xx =>
-
         obtain ⟨h_reg, h_size_trans⟩ := h_reg
         have h_size :  TreeLikeResolution.size π ≤ 2 ^ (W) := by
           omega
@@ -740,7 +731,6 @@ theorem width_imply_size_ind_version (W : ℕ)
           have h_gen_size_lb : π₁.size ≤ 2^(W) ∧ π₂.size ≤ 2^(W) := by
             unfold TreeLikeResolution.size at h_size; omega
 
-
           let ρ_true : Assignment {v} := (fun _ => fun _ => True)
           let ρ_false : Assignment {v} := (fun _ => fun _ => False)
 
@@ -776,19 +766,12 @@ theorem width_imply_size_ind_version (W : ℕ)
             bot_refut_of_falsified_lit (v'.toLiteral h_v_in_vars true) ρ_false (by rfl)
               temp_fact_1 π₁
 
-
-
-
-
           obtain ⟨π_2, h_π_2⟩ := h_π_2_existence
-
 
           have h_clause_subs_width_true : ∀ C ∈ φ.substitute ρ_true, Finset.card C ≤ W_c :=
             clause_card_substitute_le h_clause_card
           have h_clause_subs_width_false : ∀ C ∈ φ.substitute ρ_false, Finset.card C ≤ W_c :=
             clause_card_substitute_le h_clause_card
-
-
 
           cases idea₁ with
           | inr h_size₁ =>

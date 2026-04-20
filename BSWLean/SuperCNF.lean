@@ -694,21 +694,12 @@ lemma Clause.convert_maintains_eq {vars₁ vars₂} {c₁ c₂ : Clause vars₁}
   constructor
   all_goals aesop
 
-lemma trivial_subs_unfold_false {vars} (x : Literal vars)
-    (ρ_false : (Assignment ({x.variable} : Finset Variable)))
-    (h_value : x.IsAssignment (¬x.polarity : Bool) ρ_false)
-    (h_1 : ∀ l ∈ ρ_false.toClause, l.variable ∈ vars) :
-    (ρ_false.toClause).convert vars h_1 = ({x} : Clause vars) := by
+lemma trivial_subs_unfold {vars} (x : Literal vars) (b : Bool)
+    (ρ : Assignment ({x.variable} : Finset Variable))
+    (h_value : x.IsAssignment b ρ)
+    (h_1 : ∀ l ∈ ρ.toClause, l.variable ∈ vars) :
+    (ρ.toClause).convert vars h_1 = ({Literal.mk x.v ¬b} : Clause vars) := by
   unfold Assignment.toClause Clause.convert
-  aesop
-
-lemma trivial_subs_unfold_true {vars}
-    (x : Literal vars)
-    (ρ_true : (Assignment ({x.variable} : Finset Variable)))
-    (h_value : x.IsAssignment x.polarity ρ_true)
-    (h_1 : ∀ l ∈ ρ_true.toClause, l.variable ∈ vars) :
-    (ρ_true.toClause).convert vars h_1 = ({x.negate} : Clause vars) := by
-  unfold Assignment.toClause Clause.convert Literal.negate
   aesop
 
 #lint

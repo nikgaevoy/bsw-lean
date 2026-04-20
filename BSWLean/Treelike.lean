@@ -415,9 +415,9 @@ theorem unsat_implies_tree_like_refutation {vars} {φ : CNFFormula vars}
     let v_neg : Clause also_vars := {Variable.toLiteral v (Finset.mem_insert_self v vars') false}
 
     have ρ_true_clause : ρ_true.toClause.convert also_vars (by aesop) = v_neg := by
-      exact trivial_subs_unfold_true (v.toLiteral (by aesop) true) ρ_true (by rfl) (by aesop)
+      exact trivial_subs_unfold (v.toLiteral (by aesop) true) true ρ_true (by rfl) (by aesop)
     have ρ_false_clause : ρ_false.toClause.convert also_vars (by aesop) = v_pos := by
-      exact trivial_subs_unfold_false (v.toLiteral (by aesop) true) ρ_false (by rfl) (by aesop)
+      exact trivial_subs_unfold (v.toLiteral (by aesop) true) false ρ_false (by rfl) (by aesop)
 
     have h_c_true : c_true ⊆ v_neg := by
       unfold c_true
