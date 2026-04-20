@@ -5,7 +5,7 @@ import Mathlib.Data.Finset.Basic
 lemma lit_subst_is_Bot_false {vars}
     (l : Literal vars)
     (ρ_false : (Assignment ({l.variable} : Finset Variable)))
-    (h_value : l.IsFalsAssignment ρ_false) :
+    (h_value : l.IsAssignment (¬l.polarity : Bool) ρ_false) :
     ({l} : Clause vars).substitute ρ_false = BotClause (vars \ {l.variable}):= by
   aesop (add safe apply clause_subst_eq_bot_of_falsified)
 
@@ -318,7 +318,7 @@ lemma width_closure {vars} (φ₁ φ₂ : CNFFormula vars) (W : ℕ) (C_0 : Clau
 lemma trivial_subs_unfold {vars}
     (x : Literal vars)
     (ρ_true : (Assignment ({x.variable} : Finset Variable)))
-    (h_value : x.IsSatAssignment ρ_true)
+    (h_value : x.IsAssignment x.polarity ρ_true)
     (h_1 : ∀ l ∈ ρ_true.toClause, l.variable ∈ vars) :
     (ρ_true.toClause).convert vars h_1 = ({x.negate} : Clause vars) := by
   unfold Literal.negate Assignment.toClause Clause.convert
@@ -327,7 +327,7 @@ lemma trivial_subs_unfold {vars}
 lemma ufold_one_literal {vars} {φ : CNFFormula vars}
     (x : Literal vars) (h₀ : x.variable ∈ vars)
     (ρ_true : (Assignment ({x.variable} : Finset Variable)))
-    (h_value : x.IsSatAssignment ρ_true)
+    (h_value : x.IsAssignment x.polarity ρ_true)
     (π_1 : TreeLikeRefutation (φ.substitute ρ_true))
     (fact₀ : {x.variable} ⊆ vars) :
     (TreeLikeResolution.unsubstitute_rhs ρ_true π_1) ⊆ ({x.negate} : Clause vars) := by
@@ -516,9 +516,9 @@ Key lemma used to prove size-width relation. Corresponds to Lemma 3.2 from Ben-S
 lemma width_combine (vars) {φ : CNFFormula vars}
     (x : Literal vars) (h₀ : x.variable ∈ vars)
     (ρ_true : (Assignment ({x.variable} : Finset Variable)))
-    (h_value : x.IsSatAssignment ρ_true)
+    (h_value : x.IsAssignment x.polarity ρ_true)
     (ρ_false : (Assignment ({x.variable} : Finset Variable)))
-    (h_value_false : x.IsFalsAssignment ρ_false)
+    (h_value_false : x.IsAssignment (¬x.polarity : Bool) ρ_false)
     (W : ℕ) (π_1 : TreeLikeRefutation (φ.substitute ρ_true)) (h_width_true : π_1.width ≤ W)
     (π_2 : TreeLikeRefutation (φ.substitute ρ_false)) (h_width_false : π_2.width ≤ W + 1)
     (h_clause_card : ∀ C ∈ φ, C.card ≤ W + 1) :
@@ -640,8 +640,8 @@ private lemma width_ind_combine
     (h_clause_card : ∀ C ∈ φ, C.card ≤ W_c)
     (lit : Literal s)
     {ρ_A ρ_B : Assignment ({lit.variable} : Finset Variable)}
-    (h_lit_A : lit.IsSatAssignment ρ_A)
-    (h_lit_B : lit.IsFalsAssignment ρ_B)
+    (h_lit_A : lit.IsAssignment lit.polarity ρ_A)
+    (h_lit_B : lit.IsAssignment (¬lit.polarity : Bool) ρ_B)
     (π_A' : TreeLikeRefutation (φ.substitute ρ_A))
     (h_A_width : π_A'.width ≤ (W - 1) + W_c)
     (π_B' : TreeLikeRefutation (φ.substitute ρ_B))
@@ -657,7 +657,7 @@ extract a refutation of the substituted formula whose size is no larger. -/
 private lemma bot_refut_of_falsified_lit
     {s : Finset Variable} {φ : CNFFormula s}
     (lit : Literal s) (ρ : Assignment ({lit.variable} : Finset Variable))
-    (h_ρ : lit.IsFalsAssignment ρ)
+    (h_ρ : lit.IsAssignment (¬lit.polarity : Bool) ρ)
     {c : Clause s} (h_c_eq : c = ({lit} : Clause s))
     (π : TreeLikeResolution φ c) :
     ∃ π' : TreeLikeResolution (φ.substitute ρ) (BotClause (s \ {lit.variable})),
