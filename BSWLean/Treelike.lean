@@ -407,10 +407,6 @@ theorem unsat_implies_tree_like_refutation {vars} {φ : CNFFormula vars}
     let c_true := π_true.unsubstitute_rhs ρ_true
     let c_false := π_false.unsubstitute_rhs ρ_false
 
-    have h_convert : (Finset.disjUnion (insert v vars' \ {v}) {v} (Finset.sdiff_disjoint)) =
-        also_vars := by grind
-    have : vars' ⊆ also_vars := by exact Finset.subset_insert v vars'
-
     let v_pos : Clause also_vars := {Variable.toLiteral v (Finset.mem_insert_self v vars') true}
     let v_neg : Clause also_vars := {Variable.toLiteral v (Finset.mem_insert_self v vars') false}
 
@@ -420,24 +416,11 @@ theorem unsat_implies_tree_like_refutation {vars} {φ : CNFFormula vars}
       exact trivial_subs_unfold (v.toLiteral (by aesop) true) false ρ_false (by rfl) (by aesop)
 
     have h_c_true : c_true ⊆ v_neg := by
-      unfold c_true
-      have h := π_true.unsubstitute_rhs_variables ρ_true
-          (by exact Finset.union_subset_left fun ⦃a⦄ a_1 ↦ a_1)
-      let mid := ((BotClause (insert v vars' \ {v})).combine ρ_true.toClause
-        Finset.sdiff_disjoint).convert_trivial also_vars h_convert
-      trans mid
-      all_goals aesop
-
+      have h := π_true.unsubstitute_rhs_variables ρ_true (by aesop)
+      aesop
     have h_c_false : c_false ⊆ v_pos := by
-      unfold c_false
-      have h := π_false.unsubstitute_rhs_variables ρ_false
-        (by exact Finset.union_subset_left fun ⦃a⦄ a_1 ↦ a_1)
-      let mid := ((BotClause (insert v vars' \ {v})).combine ρ_false.toClause
-        Finset.sdiff_disjoint).convert_trivial also_vars h_convert
-      trans mid
-      all_goals aesop
-
-    have h_card_inequality : 2 ^ also_vars.card - 1 ≤ 2 * 2 ^ (insert v vars').card - 1 := by grind
+      have h := π_false.unsubstitute_rhs_variables ρ_false (by aesop)
+      aesop
 
     by_cases h_true_empty : c_true = ∅
     case pos =>
