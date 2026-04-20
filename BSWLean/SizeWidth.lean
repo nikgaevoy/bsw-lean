@@ -622,6 +622,15 @@ lemma var_incl {vars} (v : Variable) (C : Clause vars) (h_v_in_vars : v ∈ vars
   case neg h_v =>
     grind
 
+/-- A clause bounded by `BotClause ∪ {v.toLiteral h b}` that still contains variable `v`
+must be exactly the singleton. -/
+lemma bot_res_premise_eq_singleton {vars} (v : Variable) (C : Clause vars)
+    (h_v : v ∈ vars) (b : Bool)
+    (h_v_in_C : v ∈ C.variables)
+    (h_sub : C ⊆ BotClause vars ∪ {v.toLiteral h_v b}) :
+    C = {v.toLiteral h_v b} := by
+  grind [Variable.toLiteral, Clause.variables]
+
 
 /-!
 Claude wrote this lemma
@@ -725,12 +734,7 @@ theorem width_imply_size_ind_version (W : ℕ)
           obtain ⟨h_res_left, h_res_right⟩ := h_res
 
           have temp_fact_2 : c₂ = ({v'.toLiteral h_v_in_vars false} : Clause s) := by
-            unfold IsRegularRes at h_reg
-            refine Finset.Subset.antisymm ?_ ?_
-            · simpa [BotClause] using h_res_right
-            have h_v_in_c : v' ∈ c₂.variables := by grind
-            have := var_incl v' c₂ h_v_in_vars h_v_in_c
-            grind
+            grind [Variable.toLiteral, Clause.variables, IsRegularRes]
 
           have h_π_1_existence :
               ∃ (π_1 : TreeLikeResolution (φ.substitute ρ_true) (BotClause (s \ {v}))),
@@ -741,12 +745,7 @@ theorem width_imply_size_ind_version (W : ℕ)
           obtain ⟨π_1, h_π_1⟩ := h_π_1_existence
 
           have temp_fact_1 : c₁ = ({v'.toLiteral h_v_in_vars true} : Clause s) := by
-            unfold IsRegularRes at h_reg
-            refine Finset.Subset.antisymm ?_ ?_
-            · simpa [BotClause] using h_res_left
-            have h_v_in_c : v' ∈ c₁.variables := by grind
-            have := var_incl v' c₁ h_v_in_vars h_v_in_c
-            grind
+            grind [Variable.toLiteral, Clause.variables, IsRegularRes]
 
           have h_π_2_existence :
               ∃ (π_2 : TreeLikeResolution (φ.substitute ρ_false) (BotClause (s \ {v}))),
@@ -764,8 +763,7 @@ theorem width_imply_size_ind_version (W : ℕ)
           cases idea₁ with
           | inr h_size₁ =>
               have idea_0 : π_1.size ≤ 2 ^ (W - 1) := by grind
-              have ineq₁ : W - 1 < W := by grind
-              have ih_1 := ih_0 (W - 1) ineq₁
+              have ih_1 := ih_0 (W - 1) (by grind)
                 (s \ {v}) (φ.substitute ρ_true) h_clause_subs_width_true π_1 idea_0
               obtain ⟨π_1', idea_00'⟩ := ih_1
               have idea_10 : π_2.size ≤ 2^(W) := by omega
@@ -782,8 +780,7 @@ theorem width_imply_size_ind_version (W : ℕ)
 
           | inl h_size₂ =>
               have idea_0 : π_2.size ≤ 2 ^ (W - 1) := by grind
-              have ineq₁ : W - 1 < W := by grind
-              have ih_1 := ih_0 (W - 1) ineq₁
+              have ih_1 := ih_0 (W - 1) (by grind)
                 (s \ {v}) (φ.substitute ρ_false) h_clause_subs_width_false π_2 idea_0
               obtain ⟨π_2', idea_00'⟩ := ih_1
               have idea_10 : π_1.size ≤ 2^(W) := by
