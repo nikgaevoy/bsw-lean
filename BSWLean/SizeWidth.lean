@@ -322,7 +322,7 @@ lemma ufold_one_literal {vars} {φ : CNFFormula vars}
     (π_1 : TreeLikeRefutation (φ.substitute ρ_true))
     (fact₀ : {x.variable} ⊆ vars) :
     (TreeLikeResolution.unsubstitute_rhs ρ_true π_1) ⊆ ({x.negate} : Clause vars) := by
-
+  
   unfold TreeLikeRefutation at π_1
 
   trans ((BotClause (vars \ {x.variable})).combine ρ_true.toClause
@@ -351,10 +351,10 @@ lemma clause_width_smaller_proof_width {vars : Variables} {φ} {C : Clause vars}
     (π : TreeLikeResolution φ C) : (C.card ≤ π.width) := by
   induction π
   · aesop
-  rename_i h_resolve π₁_ih π₂_ih
-  obtain ⟨left, right⟩ := h_resolve
-  unfold TreeLikeResolution.width
-  aesop
+  · rename_i h_resolve π₁_ih π₂_ih
+    obtain ⟨left, right⟩ := h_resolve
+    unfold TreeLikeResolution.width
+    aesop
 
 def convert_proof (W : ℕ) {vars₁ vars₂ : Variables} {φ : CNFFormula vars₁} {C : Clause vars₁}
     {φ₁ : CNFFormula vars₂} (h_subs : vars₁ ⊆ vars₂)
@@ -469,8 +469,8 @@ private lemma clause_card_substitute_le {vars sub_vars} {φ : CNFFormula vars}
   obtain ⟨A, h_A_in, h_A_sub⟩ := CNFFormula.substitute_preimage h_c
   have h₁ : (A.substitute ρ).isSome := by simp [h_A_sub]
   have h_le := Clause.substitute_card_leq_card A ρ (h := h₁)
-  simp [h_A_sub] at h_le
-  exact h_le.trans (h_clause_card A h_A_in)
+  grind
+
 
 private lemma resolve_axiom_with_negate {vars} {φ : CNFFormula vars}
     {x : Literal vars} {C_0 C_2 : Clause vars} {W : ℕ}
@@ -591,10 +591,7 @@ lemma root_var_in_vars {vars} {φ : CNFFormula vars} {c : Clause vars}
     getRootVariable π = some v → v ∈ vars := by
   cases π with
   | axiom_clause => simp [getRootVariable]
-  | resolve _ _ v' h_v_in_vars =>
-    simp [getRootVariable]
-    rintro rfl
-    exact h_v_in_vars
+  | resolve _ _ v' h_v_in_vars => grind [getRootVariable]
 
 lemma size_split {a b k : ℕ} (h : a + b ≤ k + k) : a ≤ k ∨ b ≤ k := by omega
 
@@ -664,14 +661,9 @@ private lemma bot_refut_of_falsified_lit
     ∃ π' : TreeLikeResolution (φ.substitute ρ) (BotClause (s \ {lit.variable})),
       π'.size ≤ π.size := by
   have h_subst : c.substitute ρ = BotClause (s \ {lit.variable}) := by
-    rw [h_c_eq]; exact lit_subst_is_Bot_false lit ρ h_ρ
+    grind only [lit_subst_is_Bot_false]
   rcases resolution_restrict ρ π with h_none | ⟨c_res, h_cres, c', h_sub, π', _, h_size⟩
-  · grind
-  · have h_eq1 : c_res = BotClause (s \ {lit.variable}) := by grind
-    subst h_eq1
-    have h_eq2 : c' = BotClause (s \ {lit.variable}) := Finset.subset_empty.mp h_sub
-    subst h_eq2
-    exact ⟨π', h_size⟩
+  all_goals grind [Finset.subset_empty]
 
 theorem width_imply_size_ind_version (W : ℕ)
     (W_c : ℕ) :
