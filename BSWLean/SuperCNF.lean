@@ -94,16 +94,7 @@ lemma Literal.equiv_trans {vars₁} {vars₂} {vars₃}
 
 @[simp]
 lemma SuperLiteral.equiv_Equivalence : Equivalence SuperLiteralEquiv := by
-  constructor
-  case refl =>
-    intro x
-    aesop
-  case symm =>
-    intro x y h_eq
-    aesop
-  case trans =>
-    intro x y z hxy hyz
-    aesop
+  refine ⟨?_, ?_, ?_⟩ <;> intros <;> aesop
 
 
 @[aesop safe]
@@ -194,29 +185,16 @@ lemma Clause.ClauseEquiv_iff_eq {vars} (c₁ c₂ : Clause vars) :
 @[aesop unsafe]
 lemma Clause.subset_trans {vars₁} {vars₂} {vars₃}
     {c₁ : Clause vars₁} (c₂ : Clause vars₂) {c₃ : Clause vars₃}
-    (h_12 : ClauseSubset c₁ c₂) (h_23 : ClauseSubset c₂ c₃) : ClauseSubset c₁ c₃ := by
-  constructor
-  intro l₁ h_l₁
-  obtain ⟨l₂, h_l₂⟩ := h_12.h_subset l₁ h_l₁
-  obtain ⟨l₃, h_l₃⟩ := h_23.h_subset l₂ h_l₂.left
-  use l₃
-  aesop
+    (h_12 : ClauseSubset c₁ c₂) (h_23 : ClauseSubset c₂ c₃) : ClauseSubset c₁ c₃ := ⟨fun l₁ h_l₁ =>
+  let ⟨l₂, h_l₂, h_eq₁⟩ := h_12.h_subset l₁ h_l₁
+  let ⟨l₃, h_l₃, h_eq₂⟩ := h_23.h_subset l₂ h_l₂
+  ⟨l₃, h_l₃, Literal.equiv_trans l₂ h_eq₁ h_eq₂⟩⟩
 
 @[simp]
 lemma SuperClause.equiv_Equivalence : Equivalence SuperClauseEquiv := by
-  constructor
-  case refl =>
-    intro x
-    aesop
-  case symm =>
-    intro x y h_xy
-    aesop
-  case trans =>
-    intro x y z h_xy h_yz
-    constructor
-    constructor
-    all_goals apply Clause.subset_trans y.clause
-    all_goals aesop
+  refine ⟨fun _ => by aesop, fun _ => by aesop, fun {_ y _} h_xy h_yz => ?_⟩
+  exact ⟨⟨Clause.subset_trans y.clause h_xy.h_equiv.h_mp h_yz.h_equiv.h_mp,
+         Clause.subset_trans y.clause h_yz.h_equiv.h_mpr h_xy.h_equiv.h_mpr⟩⟩
 
 /-- `Clause ↦ SuperClause`. -/
 @[aesop safe [unfold]]
@@ -232,28 +210,15 @@ def SuperClause.toClause (sc : SuperClause) (vars : Variables) : Option (Clause 
     none
 
 @[simp]
-lemma SuperClause.vars_isSome (sc : SuperClause) : (sc.toClause sc.vars).isSome := by
-  unfold toClause
-  aesop
-
+lemma SuperClause.vars_isSome (sc : SuperClause) : (sc.toClause sc.vars).isSome := by aesop
 
 @[simp]
 lemma Clause.convert_self {vars : Variables} (c : Clause vars) {h} : c.convert vars h = c := by
-  unfold convert
-  aesop
+  aesop (add safe unfold Clause.convert)
 
 @[simp]
 lemma Clause.eqiuv_SuperClause {vars} (c : Clause vars) (sc : SuperClause) :
-    sc.toClause vars = some c ↔ c.toSuperClause = sc := by
-  constructor
-  case mp =>
-    intro h
-    aesop
-
-  case mpr =>
-    intro h
-    unfold Clause.toSuperClause at h
-    aesop
+    sc.toClause vars = some c ↔ c.toSuperClause = sc := by aesop
 
 
 @[simp]
@@ -270,33 +235,9 @@ lemma Clause.equiv_sym {vars₁ vars₂} {c₁ : Clause vars₁} {c₂ : Clause 
 @[aesop unsafe]
 lemma Clause.equiv_trans {vars₁ vars₂ vars₃}
     {c₁ : Clause vars₁} (c₂ : Clause vars₂) {c₃ : Clause vars₃}
-    (h_12 : ClauseEquiv c₁ c₂) (h_23 : ClauseEquiv c₂ c₃) : ClauseEquiv c₁ c₃ := by
-  let sc₁ := c₁.toSuperClause
-  have h_1 : sc₁.toClause vars₁ = c₁ := by
-    exact (eqiuv_SuperClause c₁ sc₁).mpr rfl
-  have h_1_vars : sc₁.vars = vars₁ := by trivial
-  let sc₂ := c₂.toSuperClause
-  have h_2 : sc₂.toClause vars₂ = c₂ := by
-    exact (eqiuv_SuperClause c₂ sc₂).mpr rfl
-  have h_2_vars : sc₂.vars = vars₂ := by trivial
-  let sc₃ := c₃.toSuperClause
-  have h_3 : sc₃.toClause vars₃ = c₃ := by
-    exact (eqiuv_SuperClause c₃ sc₃).mpr rfl
-  have h_3_vars : sc₃.vars = vars₃ := by trivial
-
-  have h_12' : SuperClauseEquiv sc₁ sc₂ := by
-    exact { h_equiv := h_12 }
-
-  have h_23' : SuperClauseEquiv sc₂ sc₃ := by
-    exact { h_equiv := h_23 }
-
-  have h_13' : SuperClauseEquiv sc₁ sc₃ := by
-    apply SuperClause.equiv_Equivalence.trans
-    · exact h_12'
-    · exact h_23'
-
-  rw [SuperClause.equiv_iff_ClauseEquiv] at h_13'
-  grind only [= Option.get_some]
+    (h_12 : ClauseEquiv c₁ c₂) (h_23 : ClauseEquiv c₂ c₃) : ClauseEquiv c₁ c₃ :=
+  ⟨Clause.subset_trans c₂ h_12.h_mp h_23.h_mp,
+   Clause.subset_trans c₂ h_23.h_mpr h_12.h_mpr⟩
 
 @[aesop unsafe]
 lemma literal_mem_clause_convert_if_literal_convert_mem_clause {vars₁ vars₂}
@@ -318,62 +259,28 @@ def SuperClause.convert (cl : SuperClause) (vars : Variables)
 
 @[aesop safe]
 lemma SuperClause.convert_equivalence (sc : SuperClause) (vars : Variables) {h} :
-    SuperClauseEquiv sc (sc.convert vars h) := by
-  unfold SuperClause.convert
-  constructor
-  constructor
-  case h_equiv.h_mp =>
-    constructor
-    intro l h_l
-    use l.convert vars <| h l h_l
-    aesop (add safe unfold Clause.convert)
-  case h_equiv.h_mpr =>
-    aesop (add safe unfold Clause.convert)
+    SuperClauseEquiv sc (sc.convert vars h) :=
+  ⟨Clause.equiv_sym (Clause.convert_equiv sc.clause)⟩
 
 @[simp]
 lemma Clause.convert_keeps_literals {vars₁ : Variables} {c : Clause vars₁} {l : Literal vars₁}
     (vars₂ : Variables) {h_l} {h_c} : l.convert vars₂ h_l ∈ c.convert vars₂ h_c ↔ l ∈ c := by
-  constructor
-  · intro h_convert
-    unfold Clause.convert at h_convert
-    simp_all
-  · unfold Clause.convert
-    aesop
+  unfold Clause.convert; simp_all
 
 lemma convert_h₃ {vars₁ vars₂ vars₃ : Variables} (c : Clause vars₁)
     (h₁ : ∀ l ∈ c, l.variable ∈ vars₂) (h₂ : ∀ l ∈ (c.convert vars₂ h₁), l.variable ∈ vars₃) :
-    ∀ l ∈ c, l.variable ∈ vars₃ := by
-  intro l h_l_c
-  suffices ∃ l' ∈ (c.convert vars₂ h₁), LiteralEquiv l l' by aesop
-  use l.convert vars₂ (h₁ l h_l_c)
-  apply And.intro
-  · simp_all
-  · aesop
+    ∀ l ∈ c, l.variable ∈ vars₃ := fun l h_l => by
+  have := h₂ (l.convert vars₂ (h₁ l h_l)) (by simp_all)
+  simp_all
 
 @[simp]
 lemma Clause.convert_convert {vars₁ vars₂ vars₃ : Variables} (c : Clause vars₁) {h₁ h₂} :
     (c.convert vars₂ h₁).convert vars₃ h₂ =
     c.convert vars₃ (by exact fun l a ↦ convert_h₃ c h₁ h₂ l a) := by
-  let c₁ := c.convert vars₂ h₁
-  let c₂ := c₁.convert vars₃ h₂
-  let c₃ := c.convert vars₃ (by exact fun l a ↦ convert_h₃ c h₁ h₂ l a)
-
-  rw [←Clause.ClauseEquiv_iff_eq]
-  have : ClauseEquiv c₃ c := by
-    exact convert_equiv c
-  have h_03 : ClauseEquiv c c₃ := by
-    constructor
-    · exact ClauseEquiv.h_mpr
-    · exact ClauseEquiv.h_mp
-  have h_10 : ClauseEquiv c₁ c := by
-    exact convert_equiv c
-  have h_21 : ClauseEquiv c₂ c₁ := by
-    exact convert_equiv c₁
-  have : ClauseEquiv c₂ c := by
-    exact equiv_trans c₁ h_21 h_10
-  apply Clause.equiv_trans c
-  · assumption
-  · assumption
+  rw [← Clause.ClauseEquiv_iff_eq]
+  exact equiv_trans c
+    (equiv_trans (c.convert vars₂ h₁) (convert_equiv _) (convert_equiv _))
+    (equiv_sym (convert_equiv _))
 
 /-- Class defining the fact that two assignments agree on their intersection. -/
 @[aesop safe [constructors, cases]]
@@ -414,55 +321,24 @@ lemma convert_agree_eval {vars₁ vars₂} (c₁ : Clause vars₁) (ρ₁ : Assi
     (h_agree : Agree ρ₁ ρ₂) : c₁.eval ρ₁ = c₂.eval ρ₂ := by
   let sub_vars := vars₁ ∩ vars₂
   have h_sub₁ : ∀ l ∈ c₁, l.variable ∈ sub_vars := by
-    intro l h_l_c₁
-    unfold sub_vars
-    rw [@Finset.mem_inter]
-    constructor
-    · exact Literal.variable_mem_vars l
-    · have : ∃ l' ∈ c₂, LiteralEquiv l l' := by
-        apply h_equiv.h_mp.h_subset l
-        assumption
-      obtain ⟨l', h_l'⟩ := this
-      aesop
-
-  let c₁' := (c₁.convert sub_vars h_sub₁)
-  let ρ₁' := (ρ₁.restrict sub_vars Finset.inter_subset_left)
-
-  have h_c₁_eq : c₁.eval ρ₁ = c₁'.eval ρ₁' := by rw [Clause.convert_eval]
-
+    intro l h_l
+    obtain ⟨l', _, h_eq⟩ := h_equiv.h_mp.h_subset l h_l
+    exact Finset.mem_inter.mpr ⟨l.variable_mem_vars, h_eq.h_equiv.left ▸ l'.variable_mem_vars⟩
   have h_sub₂ : ∀ l ∈ c₂, l.variable ∈ sub_vars := by
-    intro l h_l_c₂
-    unfold sub_vars
-    rw [@Finset.mem_inter]
-    constructor
-    · have : ∃ l' ∈ c₁, LiteralEquiv l l' := by
-        apply h_equiv.h_mpr.h_subset l
-        assumption
-      obtain ⟨l', h_l'⟩ := this
-      aesop
-    · exact Literal.variable_mem_vars l
-
-  let c₂' := (c₂.convert sub_vars h_sub₂)
-  let ρ₂' := (ρ₂.restrict sub_vars Finset.inter_subset_right)
-
-  have h_c₂_eq : c₂.eval ρ₂ = c₂'.eval ρ₂' := by
-    rw [Clause.convert_eval]
-
-  have : c₁' = c₂' := by
-    refine (Clause.ClauseEquiv_iff_eq c₁' c₂').mp ?_
-    have h₁ : ClauseEquiv c₁ c₁' := by grind
-    have h₂ : ClauseEquiv c₂' c₂ := by grind
-    apply Clause.equiv_trans c₁
-    · grind
-    apply Clause.equiv_trans c₂
-    all_goals grind
-
-  rw [h_c₁_eq]
-  rw [h_c₂_eq]
-  rw [←this]
-
-  suffices h: ρ₁' = ρ₂' by rw [h]
-  aesop
+    intro l h_l
+    obtain ⟨l', _, h_eq⟩ := h_equiv.h_mpr.h_subset l h_l
+    exact Finset.mem_inter.mpr ⟨h_eq.h_equiv.left ▸ l'.variable_mem_vars, l.variable_mem_vars⟩
+  let ρ₁' := ρ₁.restrict sub_vars Finset.inter_subset_left
+  let ρ₂' := ρ₂.restrict sub_vars Finset.inter_subset_right
+  have h_c₁ : c₁.eval ρ₁ = (c₁.convert sub_vars h_sub₁).eval ρ₁' := by rw [Clause.convert_eval]
+  have h_c₂ : c₂.eval ρ₂ = (c₂.convert sub_vars h_sub₂).eval ρ₂' := by rw [Clause.convert_eval]
+  have h_eq : c₁.convert sub_vars h_sub₁ = c₂.convert sub_vars h_sub₂ := by
+    rw [← Clause.ClauseEquiv_iff_eq]
+    exact Clause.equiv_trans c₂
+      (Clause.equiv_trans c₁ (Clause.convert_equiv _) h_equiv)
+      (Clause.equiv_sym (Clause.convert_equiv _))
+  have h_ρ : ρ₁' = ρ₂' := by aesop
+  rw [h_c₁, h_c₂, h_eq, h_ρ]
 
 @[simp]
 lemma Clause.convert_trivial_subset {vars₁ : Variables} {c₁ c₂ : Clause vars₁}
@@ -484,19 +360,11 @@ lemma Clause.convert_keeps_subset {vars₁ : Variables} {c₁ c₂ : Clause vars
 lemma Clause.equiv_keeps_subset {vars₁ vars₂ : Variables}
     (c₁ c₂ : Clause vars₁) {c₁' c₂' : Clause vars₂}
     (h₁ : ClauseSubset c₁' c₁) (h₂ : ClauseSubset c₂ c₂')
-    (h_subset : c₁ ⊆ c₂) : c₁' ⊆ c₂' := by
-  rw [@Finset.subset_iff]
-  intro l₁ h_l₁
-  obtain ⟨l, ⟨h_l, _⟩⟩ := h₁.h_subset l₁ h_l₁
-  apply h_subset at h_l
-  obtain ⟨l₂, ⟨h_l₂, _⟩⟩ := h₂.h_subset l h_l
-  have : l₁ = l₂ := by
-    rw [←Literal.equiv_equiv]
-    apply Literal.equiv_trans l
-    · assumption
-    · assumption
-  rw [this]
-  assumption
+    (h_subset : c₁ ⊆ c₂) : c₁' ⊆ c₂' := fun l₁ h_l₁ => by
+  obtain ⟨l, h_l, h_eq₁⟩ := h₁.h_subset l₁ h_l₁
+  obtain ⟨l₂, h_l₂, h_eq₂⟩ := h₂.h_subset l (h_subset h_l)
+  have : l₁ = l₂ := (Literal.equiv_equiv ..).mp (Literal.equiv_trans l h_eq₁ h_eq₂)
+  exact this ▸ h_l₂
 
 /-- This is a technical lemma needed in one of the proofs. -/
 lemma Clause.convert_maintains_subset_insert {vars₁ : Variables} (c₁ : Clause vars₁)
@@ -554,8 +422,7 @@ lemma Clause.convert_keeps_variables {vars₁} (c : Clause vars₁) (vars₂ : V
 @[simp]
 lemma Clause.combine_variables {vars₁} {vars₂} (c₁ : Clause vars₁) (c₂ : Clause vars₂)
     (h : Disjoint vars₁ vars₂) : (c₁.combine c₂ h).variables = c₁.variables ∪ c₂.variables := by
-  unfold combine
-  simp
+  unfold combine; simp
 
 lemma Clause.combine_not_variables {vars₁} {vars₂} (c₁ : Clause vars₁) (c₂ : Clause vars₂)
     (h : Disjoint vars₁ vars₂) (x : Variable) (h₁ : x ∉ c₁.variables) (h₂ : x ∉ c₂.variables) :
@@ -672,27 +539,17 @@ lemma Clause.substitute_combine {vars} {sub_vars} (c : Clause vars) (ρ : Assign
       aesop
 
 lemma Clause.reverse_convert {vars₁ vars₂} {c : Clause vars₁} {h} {l : Literal vars₂}
-  (h_l : l ∈ c.convert vars₂ h) : l.variable ∈ vars₁ := by
-  have h_l_var := literal_in_clause_variables h_l
-  have : (c.convert vars₂ h).variables = c.variables := by aesop
-  rw [this] at h_l_var
-  have : c.variables ⊆ vars₁ := by aesop
-  aesop
+    (h_l : l ∈ c.convert vars₂ h) : l.variable ∈ vars₁ :=
+  clause_variables_subset_vars c (by simpa using literal_in_clause_variables h_l)
 
 @[simp]
 lemma Clause.convert_maintains_eq {vars₁ vars₂} {c₁ c₂ : Clause vars₁} {h₁} {h₂} :
     c₁.convert vars₂ h₁ = c₂.convert vars₂ h₂ ↔ c₁ = c₂ := by
-  let c₁' := c₁.convert vars₂ h₁
-  let c₂' := c₂.convert vars₂ h₂
-
-  let c₁'' := c₁'.convert vars₁ <| by aesop (add unsafe Clause.reverse_convert)
-  let c₂'' := c₂'.convert vars₁ <| by aesop (add unsafe Clause.reverse_convert)
-
-  have : c₁'' = c₁ := by aesop
-  have : c₂'' = c₂ := by aesop
-
-  constructor
-  all_goals aesop
+  refine ⟨fun h => Finset.ext fun l => ?_, fun h => by subst h; rfl⟩
+  by_cases h_l : l.variable ∈ vars₂
+  · rw [← Clause.convert_keeps_literals (l := l) (h_l := h_l) vars₂ (h_c := h₁),
+        ← Clause.convert_keeps_literals (l := l) (h_l := h_l) vars₂ (h_c := h₂), h]
+  · exact ⟨fun h_l₁ => absurd (h₁ l h_l₁) h_l, fun h_l₂ => absurd (h₂ l h_l₂) h_l⟩
 
 lemma trivial_subs_unfold {vars} (x : Literal vars) (b : Bool)
     (ρ : Assignment ({x.variable} : Finset Variable))
