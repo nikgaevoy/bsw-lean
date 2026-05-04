@@ -599,12 +599,13 @@ private lemma bot_refut_of_falsified_lit
   rcases resolution_restrict ρ π with h_none | ⟨c_res, h_cres, c', h_sub, π', _, h_size⟩
   all_goals grind [Finset.subset_empty]
 
-theorem width_imply_size_ind_version (W : ℕ)
-    (W_c : ℕ) :
-    ∀ (vars) (φ : CNFFormula vars) (_ : ∀ C ∈ φ, C.card ≤ W_c) (π : TreeLikeRefutation φ),
-      π.size ≤ 2 ^ (W) →
-      ∃ (π' : TreeLikeRefutation φ), π'.width ≤ W + W_c:= by
-
+theorem width_imply_size (W : ℕ) (W_c : ℕ)
+    (vars) (φ : CNFFormula vars)
+    (h_W_c : ∀ C ∈ φ, C.card ≤ W_c)
+    (π : TreeLikeRefutation φ)
+    (h_size : π.size ≤ 2 ^ W) :
+    ∃ (π' : TreeLikeRefutation φ), π'.width ≤ W + W_c := by
+  revert h_size π h_W_c φ vars
   induction W using Nat.strong_induction_on with
   | h W ih_0 =>
     intro vars φ h_clause_card π_0 h_0_size
@@ -723,10 +724,3 @@ theorem width_imply_size_ind_version (W : ℕ)
                   (fun C hC => (h_clause_card C hC).trans (by omega))
               exact ⟨π_final, by omega⟩
 
-theorem width_imply_size (W : ℕ) (W_c : ℕ)
-    (vars) (φ : CNFFormula vars)
-    (h_W_c : ∀ C ∈ φ, C.card ≤ W_c)
-    (π : TreeLikeRefutation φ)
-    (h_size : π.size ≤ 2 ^ W) :
-    ∃ (π' : TreeLikeRefutation φ), π'.width ≤ W + W_c := by
-    exact width_imply_size_ind_version W W_c vars φ h_W_c π h_size
