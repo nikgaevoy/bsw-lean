@@ -470,12 +470,8 @@ lemma Clause.substitute_combine {vars} {sub_vars} (c : Clause vars) (ρ : Assign
   case neg =>
     have h_var := Literal.variable_mem_vars l
     refine ⟨(l.restrict (vars \ sub_vars) (by aesop)).convert _ (by aesop), ?_, ?_⟩
-    · simp only [c_combine, Clause.combine, Finset.mem_union, Clause.convert_keeps_literals]
-      left
-      simp only [Clause.substitute, split, shrink, Finset.mem_filter, Option.get_ite',
-        Finset.mem_filterMap, Option.dite_none_right_eq_some, Option.some.injEq, and_exists_self]
-      use l
-      aesop
+    · grind [Clause.combine, Clause.convert_keeps_literals,
+        Clause.substitute, split, shrink]
     · refine ⟨⟨?_, ?_⟩⟩ <;> (unfold Literal.restrict; aesop)
 
 lemma Clause.reverse_convert {vars₁ vars₂} {c : Clause vars₁} {h} {l : Literal vars₂}
