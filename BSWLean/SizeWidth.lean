@@ -322,7 +322,7 @@ lemma ufold_one_literal {vars} {φ : CNFFormula vars}
     (π_1 : TreeLikeRefutation (φ.substitute ρ_true))
     (fact₀ : {x.variable} ⊆ vars) :
     (TreeLikeResolution.unsubstitute_rhs ρ_true π_1) ⊆ ({x.negate} : Clause vars) := by
-  
+
   unfold TreeLikeRefutation at π_1
 
   trans ((BotClause (vars \ {x.variable})).combine ρ_true.toClause
@@ -629,27 +629,6 @@ lemma bot_res_premise_eq_singleton {vars} (v : Variable) (C : Clause vars)
   grind [Variable.toLiteral, Clause.variables]
 
 
-/-!
-Claude wrote this lemma
--/
-private lemma width_ind_combine
-    {s : Finset Variable} {W W_c : ℕ} (hW : 0 < W)
-    {φ : CNFFormula s}
-    (h_clause_card : ∀ C ∈ φ, C.card ≤ W_c)
-    (lit : Literal s)
-    {ρ_A ρ_B : Assignment ({lit.variable} : Finset Variable)}
-    (h_lit_A : lit.IsAssignment lit.polarity ρ_A)
-    (h_lit_B : lit.IsAssignment (¬lit.polarity : Bool) ρ_B)
-    (π_A' : TreeLikeRefutation (φ.substitute ρ_A))
-    (h_A_width : π_A'.width ≤ (W - 1) + W_c)
-    (π_B' : TreeLikeRefutation (φ.substitute ρ_B))
-    (h_B_width : π_B'.width ≤ W + W_c) :
-    ∃ (π' : TreeLikeRefutation φ), π'.width ≤ W + W_c - 1 + 1 :=
-  width_combine s lit (Literal.variable_mem_vars lit)
-    ρ_A h_lit_A ρ_B h_lit_B (W + W_c - 1)
-    π_A' (by omega) π_B' (by omega)
-    (fun C hC => (h_clause_card C hC).trans (by omega))
-
 /-- Given a proof of a singleton literal clause and an assignment that falsifies the literal,
 extract a refutation of the substituted formula whose size is no larger. -/
 private lemma bot_refut_of_falsified_lit
@@ -764,10 +743,10 @@ theorem width_imply_size_ind_version (W : ℕ)
               have ih'_1 := ih' (φ.substitute ρ_false) h_clause_subs_width_false π_2 idea_10
               obtain ⟨π_2', idea_11⟩ := ih'_1
               obtain ⟨π_final, conclusion⟩ :=
-                width_ind_combine (by omega) h_clause_card (v.toLiteral h_v_incl true)
-                rfl rfl π_1' idea_00' π_2' idea_11
-              use π_final
-              grind
+                width_combine s (v.toLiteral h_v_incl true) (Literal.variable_mem_vars _)
+                  _ rfl _ rfl (W + W_c - 1) π_1' (by omega) π_2' (by omega)
+                  (fun C hC => (h_clause_card C hC).trans (by omega))
+              exact ⟨π_final, by omega⟩
 
 
           | inl h_size₂ =>
@@ -784,10 +763,10 @@ theorem width_imply_size_ind_version (W : ℕ)
               have ih'_1 := ih' (φ.substitute ρ_true) h_clause_subs_width_true π_1 idea_10
               obtain ⟨π_1', idea_11⟩ := ih'_1
               obtain ⟨π_final, conclusion⟩ :=
-                width_ind_combine (by omega) h_clause_card (v.toLiteral h_v_incl false)
-                rfl rfl π_2' idea_00' π_1' idea_11
-              use π_final
-              grind
+                width_combine s (v.toLiteral h_v_incl false) (Literal.variable_mem_vars _)
+                  _ rfl _ rfl (W + W_c - 1) π_2' (by omega) π_1' (by omega)
+                  (fun C hC => (h_clause_card C hC).trans (by omega))
+              exact ⟨π_final, by omega⟩
 
 theorem width_imply_size (W : ℕ) (W_c : ℕ)
     (vars) (φ : CNFFormula vars)
