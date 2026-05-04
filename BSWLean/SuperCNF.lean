@@ -371,34 +371,13 @@ lemma Clause.convert_maintains_subset_insert {vars₁ : Variables} (c₁ : Claus
     (c₂ : Clause vars₁) (vars₂ : Variables) (l : Literal vars₂) (h : l.variable ∈ vars₁) {h₁} {h₂} :
     c₁ ⊆ insert (l.convert vars₁ h) c₂ →
     c₁.convert vars₂ h₁ ⊆ insert l (c₂.convert vars₂ h₂) := by
-  intro h_c
-  have h_c₁ : ClauseEquiv c₁ (c₁.convert vars₂ h₁) := by grind
-  have h_c₂ : ClauseEquiv (insert (l.convert vars₁ h) c₂) (insert l (c₂.convert vars₂ h₂)) := by
-    constructor
-    · constructor
-      intro l' h_l'
-      rw [Finset.mem_insert] at h_l'
-      cases h_l'
-      case inl =>
-        use l
-        aesop
-      case inr =>
-        use l'.convert vars₂ <| by aesop
-        constructor
-        · refine Finset.mem_insert_of_mem ?_
-          simp_all
-        · aesop
-    · constructor
-      intro l' h_l'
-      rw [Finset.mem_insert] at h_l'
-      cases h_l'
-      case inl => aesop
-      case inr =>
-        have : l'.variable ∈ vars₁ := by aesop (add safe unfold Clause.convert)
-        use l'.convert vars₁ this
-        aesop (add safe unfold Clause.convert)
-  apply Clause.equiv_keeps_subset c₁ (insert (l.convert vars₁ h) c₂)
-  all_goals aesop
+  intro h_c l' h_l'
+  simp only [Clause.convert, Finset.mem_filterMap, Option.dite_none_right_eq_some,
+    Option.some.injEq] at h_l'
+  obtain ⟨l'', h_l''_c₁, _, rfl⟩ := h_l'
+  rcases Finset.mem_insert.mp (h_c h_l''_c₁) with rfl | h_mem
+  · simp
+  · exact Finset.mem_insert_of_mem ((Clause.convert_keeps_literals vars₂).mpr h_mem)
 
 /-- Combines two clauses into one. Inverse function to `Clause.split`. -/
 @[aesop safe unfold]
