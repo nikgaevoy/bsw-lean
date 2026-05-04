@@ -445,98 +445,38 @@ lemma Clause.substitute_combine {vars} {sub_vars} (c : Clause vars) (ρ : Assign
     c ⊆ (Clause.combine ((c.substitute ρ).get h)
                         ρ.toClause Finset.sdiff_disjoint).convert_trivial vars (by aesop) := by
   let c_combine := (Clause.combine ((c.substitute ρ).get h) ρ.toClause Finset.sdiff_disjoint)
-  let c_combine_convert := c_combine.convert_trivial vars (by aesop)
 
-  have h_convert_subset : ClauseSubset c_combine c_combine_convert := by
-    constructor
-    unfold c_combine_convert
-    intro l h_l
-    unfold Clause.convert_trivial Clause.convert
-    simp only [Finset.mem_filterMap, Option.dite_none_right_eq_some, Option.some.injEq,
-      and_exists_self, ↓existsAndEq, true_and]
-    use l
+  suffices h_main : ClauseSubset c c_combine by
+    have h_conv : ClauseSubset c_combine (c_combine.convert_trivial vars (by aesop)) :=
+      (Clause.convert_equiv c_combine).h_mpr
+    have := Clause.subset_trans c_combine h_main h_conv
     aesop
 
-  suffices h_subset : ClauseSubset c c_combine by
-    have := Clause.subset_trans c_combine h_subset h_convert_subset
-    aesop
-
-  have h_ρ : ClauseSubset ρ.toClause c_combine := by
-    constructor
-    unfold c_combine Clause.combine
-    simp only
-    intro l h_l
-    use l.convert (Finset.disjUnion (vars \ sub_vars) sub_vars (Finset.sdiff_disjoint)) <| by aesop
-    constructor
-    · rw [@Finset.mem_union]
-      right
-      simp_all
-    · aesop
-
-  have h_sub : ClauseSubset ((c.substitute ρ).get h) c_combine := by
-    constructor
-    unfold c_combine Clause.combine
-    simp only
-    intro l h_l
-    have := Literal.variable_mem_vars l
-    use l.convert (Finset.disjUnion (vars \ sub_vars) sub_vars (Finset.sdiff_disjoint)) <| by aesop
-    constructor
-    · rw [@Finset.mem_union]
-      left
-      simp_all
-    · aesop
-
-  constructor
-  intro l h_l
+  refine ⟨fun l h_l => ?_⟩
   by_cases h_cases : l.variable ∈ sub_vars
   case pos =>
-    suffices h_mid : ∃ l_ρ ∈ ρ.toClause, LiteralEquiv l l_ρ by
-      obtain ⟨l_ρ, ⟨h_l_ρ, h_ρ_eq⟩⟩ := h_mid
-      obtain ⟨l', ⟨h_l', h_l'_eq⟩⟩ := h_ρ.h_subset l_ρ h_l_ρ
-      use l'
-      constructor
-      · assumption
-      · apply Literal.equiv_trans l_ρ
-        · assumption
-        · assumption
-    use (ρ.negVariable l.variable).get <| by aesop
-
-    constructor
-    · unfold Assignment.toClause
-      aesop
-    · constructor
-      constructor
-      · aesop
-      · suffices h_eval : ρ l.variable (by aesop) = ¬l.polarity by aesop
-        simp only [Bool.not_eq_true, eq_iff_iff, Bool.coe_true_iff_false]
-        rw [substitute_isSome_iff_eval_subclause_false] at h
-        simp only [Bool.not_eq_true] at h
-        rw [eval_eq_false_iff_all_falsified_literals] at h
-        let l' := l.restrict (vars ∩ sub_vars) <| by aesop
-        have := h l' <| by aesop
-        unfold Literal.eval Assignment.restrict at this
-        aesop (add unsafe Bool.eq_not.mpr)
-
+    refine ⟨((ρ.negVariable l.variable).get (by aesop)).convert _ (by aesop), ?_, ?_⟩
+    · simp [c_combine, Clause.combine, Finset.mem_union, Assignment.toClause]
+      right; aesop
+    · refine ⟨⟨by aesop, ?_⟩⟩
+      suffices h_eval : ρ l.variable (by aesop) = ¬l.polarity by aesop
+      simp only [Bool.not_eq_true, eq_iff_iff, Bool.coe_true_iff_false]
+      rw [substitute_isSome_iff_eval_subclause_false] at h
+      simp only [Bool.not_eq_true] at h
+      rw [eval_eq_false_iff_all_falsified_literals] at h
+      have := h (l.restrict (vars ∩ sub_vars) (by aesop)) (by aesop)
+      unfold Literal.eval Assignment.restrict at this
+      aesop (add unsafe Bool.eq_not.mpr)
   case neg =>
-    suffices h_mid : ∃ l_sub ∈ ((c.substitute ρ).get h), LiteralEquiv l l_sub by
-      obtain ⟨l_sub, ⟨h_l_sub, h_sub_eq⟩⟩ := h_mid
-      obtain ⟨l', ⟨h_l', h_l'_eq⟩⟩ := h_sub.h_subset l_sub h_l_sub
-      use l'
-      constructor
-      · assumption
-      · apply Literal.equiv_trans l_sub
-        · assumption
-        · assumption
-    unfold Clause.substitute
-    use l.restrict (vars \ sub_vars) (by aesop)
-    constructor
-    · simp only [split, shrink, Finset.mem_filter, Option.get_ite', Finset.mem_filterMap,
-      Option.dite_none_right_eq_some, Option.some.injEq, and_exists_self]
+    have h_var := Literal.variable_mem_vars l
+    refine ⟨(l.restrict (vars \ sub_vars) (by aesop)).convert _ (by aesop), ?_, ?_⟩
+    · simp only [c_combine, Clause.combine, Finset.mem_union, Clause.convert_keeps_literals]
+      left
+      simp only [Clause.substitute, split, shrink, Finset.mem_filter, Option.get_ite',
+        Finset.mem_filterMap, Option.dite_none_right_eq_some, Option.some.injEq, and_exists_self]
       use l
       aesop
-    · constructor
-      unfold Literal.restrict
-      aesop
+    · refine ⟨⟨?_, ?_⟩⟩ <;> (unfold Literal.restrict; aesop)
 
 lemma Clause.reverse_convert {vars₁ vars₂} {c : Clause vars₁} {h} {l : Literal vars₂}
     (h_l : l ∈ c.convert vars₂ h) : l.variable ∈ vars₁ :=
