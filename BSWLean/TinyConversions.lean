@@ -16,29 +16,6 @@ def is_resolve {vars} {φ : CNFFormula vars} {c : Clause vars} :
   | .axiom_clause _ => false
   | .resolve .. => true
 
-@[simp]
-lemma trivial_convert_card {vars₁ vars₂} {C : Clause vars₁} {h} :
-    (C.convert_trivial vars₂ h).card = C.card := by
-  refine Set.BijOn.finsetCard_eq ?_ ?_
-  · intro lit₁
-    subst h
-    exact lit₁
-  subst h
-  simp_all only
-  constructor
-  · unfold Clause.convert_trivial
-    unfold Clause.convert
-    simp only [Literal.convert_self, dite_eq_ite, Finset.coe_filterMap,
-      Option.ite_none_right_eq_some, Option.some.injEq, and_self_left, exists_eq_right,
-      SetLike.setOf_mem_eq]
-    exact fun ⦃x⦄ a ↦ a
-  unfold Clause.convert_trivial
-  unfold Clause.convert
-  simp
-  refine Finset.surjOn_of_injOn_of_card_le (fun lit₁ ↦ lit₁) (fun ⦃x⦄ a ↦ a) ?_ ?_
-  · exact Function.Injective.injOn fun ⦃a₁ a₂⦄ a ↦ a
-  · exact (Finset.eq_iff_card_ge_of_superset fun ⦃a⦄ a_1 ↦ a_1).mpr rfl
-
 lemma convert_card_ineq {vars₁ vars₂} {C : Clause vars₁} {h}
   : (C.convert vars₂ h).card ≤ C.card := by
   unfold Clause.convert
@@ -46,24 +23,19 @@ lemma convert_card_ineq {vars₁ vars₂} {C : Clause vars₁} {h}
 
 lemma convert_card_ineq_oppsite {vars₁ vars₂} {C : Clause vars₁} {h}
   : (C.convert vars₂ h).card ≥ C.card := by
-    have h₂ : ∀ l ∈ (C.convert vars₂ h), l.variable ∈ vars₁ := by
-      intro l a
-      unfold Clause.convert at a
-      simp at a
-      obtain ⟨w, h_1⟩ := a
-      obtain ⟨w_1, h_1⟩ := h_1
-      subst h_1
-      simp_all only [Literal.convert_variable, Literal.variable_mem_vars]
-    have idea₁ : ((C.convert vars₂ h).convert vars₁ h₂).card ≤ (C.convert vars₂ h).card := by
-      exact convert_card_ineq
-    simp_all
+  have h₂ : ∀ l ∈ (C.convert vars₂ h), l.variable ∈ vars₁ := fun _ _ => by
+    aesop (add safe unfold Clause.convert)
+  simpa using convert_card_ineq (C := C.convert vars₂ h) (h := h₂)
 
 @[simp]
 lemma convert_card {vars₁ vars₂} {C : Clause vars₁} {h} :
-    (C.convert vars₂ h).card = C.card := by
-  refine Nat.le_antisymm ?_ ?_
-  · exact convert_card_ineq
-  · exact convert_card_ineq_oppsite
+    (C.convert vars₂ h).card = C.card :=
+  Nat.le_antisymm convert_card_ineq convert_card_ineq_oppsite
+
+@[simp]
+lemma trivial_convert_card {vars₁ vars₂} {C : Clause vars₁} {h} :
+    (C.convert_trivial vars₂ h).card = C.card := by
+  unfold Clause.convert_trivial; exact convert_card
 
 
 
@@ -72,69 +44,27 @@ lemma to_clause_card_less_than_sub_vars_card {sub_vars : Variables} (ρ : Assign
   unfold Assignment.toClause
   exact filterMap_card sub_vars
 
-lemma disjoint_contradiction {α} [DecidableEq α] (s₁ s₂ : Finset α) (h_disj : Disjoint s₁ s₂)
-    (h : ∃ x ∈ s₁, x ∈ s₂) : False := by
-  rw [Finset.disjoint_iff_inter_eq_empty] at h_disj
-  obtain ⟨x, h_x_in_s₁, h_x_in_s₂⟩ := h
-  have : x ∈ s₁ ∩ s₂ := by
-    simp only [Finset.mem_inter]
-    constructor
-    · assumption
-    · assumption
-  rw [h_disj] at this
-  contradiction
-
 @[simp]
 lemma subset_combine {vars₁ vars₂} (c₁ c₂ : Clause vars₁) (c' : Clause vars₂)
     (h_disj : Disjoint vars₁ vars₂) :
     (Clause.combine c₁ c' h_disj) ⊆ (Clause.combine c₂ c' h_disj) ↔ c₁ ⊆ c₂ := by
   unfold Clause.combine
-  simp only
-  constructor
-  case mpr =>
-    intro h_subset
-    refine Finset.union_subset_union_left ?_
-    aesop
-  case mp =>
-    intro h_subset
-    have : c₁.convert (Finset.disjUnion vars₁ vars₂ h_disj) (by aesop) ⊆
-           c₂.convert (Finset.disjUnion vars₁ vars₂ h_disj) (by aesop) := by
-      rw [Finset.union_subset_iff] at h_subset
-      replace h_subset := h_subset.1
-      intro l h_l_in_c₁
-      have h_apply_subset : l ∈ c₂.convert (Finset.disjUnion vars₁ vars₂ h_disj) (by aesop) ∪
-                                c'.convert (Finset.disjUnion vars₁ vars₂ h_disj) (by aesop) := by
-        apply h_subset
-        assumption
-      simp only [Finset.mem_union] at h_apply_subset
-      by_contra!
-      simp_all only [false_or]
-      have h_l_in_vars₁ : l.variable ∈ vars₁ := by
-        have : l.variable ∈
-            (c₁.convert (Finset.disjUnion vars₁ vars₂ h_disj) (by aesop)).variables := by
-          exact literal_in_clause_variables h_l_in_c₁
-        rw [Clause.convert_keeps_variables] at this
-        have h₁ : c₁.variables ⊆ vars₁ := by aesop
-        aesop
-      have h_l_in_vars₂ : l.variable ∈ vars₂ := by
-        have : l.variable ∈
-            (c'.convert (Finset.disjUnion vars₁ vars₂ h_disj) (by aesop)).variables := by
-          exact literal_in_clause_variables (by assumption)
-        rw [Clause.convert_keeps_variables] at this
-        have h₁ : c'.variables ⊆ vars₂ := by aesop
-        aesop
-      have : l.variable ∈ vars₁ ∩ vars₂ := by aesop
-      unfold Disjoint at h_disj
-      apply disjoint_contradiction vars₁ vars₂ h_disj
-      use l.variable
-
-    intro l h_l_in_c₁
-    have h_l_in_c_convert : l.convert (Finset.disjUnion vars₁ vars₂ h_disj) (by aesop) ∈
-        c₂.convert (Finset.disjUnion vars₁ vars₂ h_disj) (by aesop) := by
-      apply this
-      aesop (add safe unfold Clause.convert)
-
-    simp_all
+  refine ⟨fun h_subset l h_l_in_c₁ => ?_, fun h_subset => Finset.union_subset_union_left (by aesop)⟩
+  rw [Finset.union_subset_iff] at h_subset
+  have h_l_conv : l.convert (Finset.disjUnion vars₁ vars₂ h_disj) (by aesop) ∈
+      c₂.convert (Finset.disjUnion vars₁ vars₂ h_disj) (by aesop) ∪
+      c'.convert (Finset.disjUnion vars₁ vars₂ h_disj) (by aesop) :=
+    h_subset.1 (by aesop (add safe unfold Clause.convert))
+  rw [Finset.mem_union] at h_l_conv
+  rcases h_l_conv with h | h
+  · simpa using h
+  · exfalso
+    have h_v₁ : l.variable ∈ vars₁ := Literal.variable_mem_vars l
+    have h_v₂ : l.variable ∈ vars₂ := by
+      have := literal_in_clause_variables h
+      rw [Clause.convert_keeps_variables] at this
+      exact clause_variables_subset_vars c' this
+    exact Finset.disjoint_left.mp h_disj h_v₁ h_v₂
 
 lemma substitute_trivial_property_human_form {vars} {c : Clause vars} {l : Literal vars} {h} :
     c ⊆
@@ -167,16 +97,8 @@ lemma substitute_trivial_property_human_form {vars} {c : Clause vars} {l : Liter
     right
     unfold Clause.substitute Clause.split Clause.shrink Clause.convert
     simp only [Finset.mem_singleton, Finset.mem_filter, Option.get_ite', Finset.mem_filterMap,
-      Option.dite_none_right_eq_some, Option.some.injEq, and_exists_self, Lean.Elab.WF.paramLet]
-
-    let t' := t.restrict (vars \ {l.variable}) (by aesop)
-    use t'
-
-    use by
-      use t
-      use by aesop
-
-    simp [t']
+      Option.dite_none_right_eq_some, Option.some.injEq, and_exists_self]
+    refine ⟨t.restrict (vars \ {l.variable}) (by aesop), ⟨t, by aesop⟩, ?_⟩
     unfold Literal.convert Literal.restrict
     aesop
 
@@ -191,20 +113,13 @@ lemma size_one_proof {vars} (φ : CNFFormula vars)
     (W_c : ℕ) (h_clause_card : ∀ C ∈ φ, C.card ≤ W_c) (π : TreeLikeRefutation φ)
     (h_size : π.size ≤ 1) :
      π.width ≤ W_c := by
-  cases h : π with
+  cases π with
   | axiom_clause h_in => aesop
-  | resolve c₁ c₂ v h_v_mem h_v_not π₁ π₂ h_res =>
-      -- This is impossible, as a resolution step has size > 1.
-      -- You can close this branch by contradiction.
-    suffices π.size > 1 by
-      omega
-
-    unfold TreeLikeResolution.size at *
-    subst h
-    simp_all only [gt_iff_lt]
-    trans 1 + π₁.size
-    · aesop
-    · aesop
+  | resolve _ _ _ _ _ π₁ π₂ _ =>
+    have := proof_size_positive π₁
+    have := proof_size_positive π₂
+    simp [TreeLikeResolution.size] at h_size
+    omega
 
 /-- Substituting a clause by an assignment that falsifies every literal yields the empty clause. -/
 lemma clause_subst_eq_bot_of_falsified {vars sub_vars}
@@ -218,11 +133,8 @@ lemma clause_subst_eq_bot_of_falsified {vars sub_vars}
     intro l' hl'
     simp only [Finset.mem_filterMap, Finset.mem_filter, Option.dite_none_right_eq_some,
       Option.some.injEq, and_exists_self] at hl'
-    obtain ⟨l, ⟨hl_in, _⟩, h_eq⟩ := hl'
-    subst h_eq
-    simp only [Literal.eval, Assignment.restrict, Literal.restrict]
-    obtain ⟨_, h_pol⟩ := h l hl_in
-    simpa using h_pol
+    obtain ⟨l, ⟨hl_in, _⟩, rfl⟩ := hl'
+    simpa [Literal.eval, Assignment.restrict, Literal.restrict] using (h l hl_in).2
   · ext l'
     simp only [Finset.mem_filterMap, Finset.mem_filter, Option.dite_none_right_eq_some,
       Option.some.injEq, and_exists_self, Finset.notMem_empty, iff_false, not_exists]
