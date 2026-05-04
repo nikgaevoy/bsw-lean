@@ -356,90 +356,45 @@ lemma clause_width_smaller_proof_width {vars : Variables} {φ} {C : Clause vars}
     unfold TreeLikeResolution.width
     aesop
 
-def convert_proof (W : ℕ) {vars₁ vars₂ : Variables} {φ : CNFFormula vars₁} {C : Clause vars₁}
-    {φ₁ : CNFFormula vars₂} (h_subs : vars₁ ⊆ vars₂)
-    (h_conv : (CNFFormula.simple_convert vars₁ vars₂ φ h_subs) = φ₁)
-    (π₁ : TreeLikeResolution φ C)
-    (h_width : π₁.width ≤ W) :
-    { π₂ : TreeLikeResolution φ₁
-    (C.convert vars₂ (by exact fun l a ↦
-      subset_of_vars_clause vars₁ vars₂ C h_subs l a)) // π₂.width ≤ W } :=
-
-  have idea : ∀ c : Clause vars₁, (∀ l ∈ c, l.variable ∈ vars₂) := by
-    aesop
-
-  have idea' : Finset.card C ≤ W := by
-    grind only [clause_width_smaller_proof_width]
-
-  match π₁ with
-  | .axiom_clause h_in =>
-      let C_new := C.convert vars₂ (by exact fun l a ↦ idea C l a)
-        have : C_new ∈ φ₁ := by
-          rw[<-h_conv]
-          unfold CNFFormula.simple_convert
-          aesop
-        let π₂ := TreeLikeResolution.axiom_clause (by aesop)
-        ⟨π₂, by grind [convert_card, TreeLikeResolution.width]⟩
-  | .resolve c₁ c₂ v h_v_mem h_v_not π_a π_b h_res =>
-      have idea₁ : π_a.width ≤ W := by
-        grind [TreeLikeResolution.width, sup_le_iff]
-      have idea₂ : π_b.width ≤ W := by
-        grind [TreeLikeResolution.width, sup_le_iff]
-
-      let ⟨π_a_new, h_wa⟩ := convert_proof W h_subs h_conv π_a idea₁
-      let ⟨π_b_new, h_wb⟩ := convert_proof W h_subs h_conv π_b idea₂
-
-      let v_new_mem := h_subs h_v_mem
-
-      have fact₁ : ∀ l ∈ c₁, l.variable ∈ vars₂ := by
-        aesop
-      have fact₂ : ∀ l ∈ c₂, l.variable ∈ vars₂ := by
-        aesop
-      have fact₀ :  ∀ l ∈ C, l.variable ∈ vars₂ := by
-        aesop
-
-      have h_resolve : c₁.convert vars₂ fact₁ ⊆
-          C.convert vars₂ fact₀ ∪ {v.toLiteral v_new_mem true} ∧
-        c₂.convert vars₂ fact₂ ⊆ C.convert vars₂ fact₀ ∪ {v.toLiteral v_new_mem false} := by
-
-        constructor
-
-        · clear idea fact₂ h_v_not h_width
-            idea₁ idea₂ idea' h_conv π_a_new π_a π_b h_wa π_b_new h_wb π₁ φ φ₁
-
-          trans (C ∪ ({v.toLiteral h_v_mem true} : Clause vars₁)).convert vars₂ (by aesop)
-          · grind only [loose_convert]
-          · grind [single_literal_conversion,
-              carry_through_convert, Finset.subset_of_eq, loose_convert]
-
-
-        · clear idea h_v_not h_width fact₁
-            idea₁ idea₂ idea' h_conv π_a_new π_a π_b h_wa π_b_new h_wb π₁ φ φ₁
-          trans (C ∪ ({v.toLiteral h_v_mem false} : Clause vars₁)).convert vars₂ (by aesop)
-          · grind only [loose_convert]
-          · grind [single_literal_conversion,
-              carry_through_convert, Finset.subset_of_eq, loose_convert]
-
-
-      -- 3. Construct the new resolution node
-      let π_new := TreeLikeResolution.resolve
-        (c₁.convert vars₂ fact₁)
-        (c₂.convert vars₂ fact₂)
-        v v_new_mem (by aesop) π_a_new π_b_new h_resolve
-
-      ⟨π_new, by
-        unfold TreeLikeResolution.width
-        aesop⟩
-
-lemma width_respect_convert (vars₁ vars₂) (φ : CNFFormula vars₁)
-   (φ₁ : CNFFormula vars₂) (h_subs : vars₁ ⊆ vars₂)
-   (h_conv : (CNFFormula.simple_convert vars₁ vars₂ φ h_subs) = φ₁)
-   (W : ℕ) (C : Clause vars₁)
-   (π_1 : TreeLikeResolution φ C) (h_width_true : π_1.width ≤ W)
-   (int_proof : ∀ l ∈ C, l.variable ∈ vars₂) :
-   ∃ (π_2 : TreeLikeResolution φ₁ (C.convert vars₂ int_proof)), π_2.width ≤ W  := by
-  let ⟨π, h⟩ := convert_proof W h_subs h_conv π_1 h_width_true
-  exact ⟨π, h⟩
+lemma width_respect_convert (vars₁ vars₂ : Variables) (W : ℕ) (φ : CNFFormula vars₁)
+    (φ₁ : CNFFormula vars₂) (h_subs : vars₁ ⊆ vars₂)
+    (h_conv : CNFFormula.simple_convert vars₁ vars₂ φ h_subs = φ₁)
+    {C : Clause vars₁} (π₁ : TreeLikeResolution φ C) (h_width : π₁.width ≤ W) :
+    ∃ π₂ : TreeLikeResolution φ₁
+      (C.convert vars₂ (subset_of_vars_clause vars₁ vars₂ C h_subs)), π₂.width ≤ W := by
+  induction π₁ with
+  | axiom_clause h_in =>
+    refine ⟨TreeLikeResolution.axiom_clause ?_, ?_⟩
+    · subst h_conv; unfold CNFFormula.simple_convert; aesop
+    · simpa [TreeLikeResolution.width, convert_card] using h_width
+  | resolve c₁ c₂ v h_v_mem h_v_not π_a π_b h_res ih_a ih_b =>
+    rename_i C₀
+    have w_a : π_a.width ≤ W := by grind [TreeLikeResolution.width, sup_le_iff]
+    have w_b : π_b.width ≤ W := by grind [TreeLikeResolution.width, sup_le_iff]
+    obtain ⟨π_a', h_wa⟩ := ih_a w_a
+    obtain ⟨π_b', h_wb⟩ := ih_b w_b
+    let v_new_mem := h_subs h_v_mem
+    have fact₀ := subset_of_vars_clause vars₁ vars₂ C₀ h_subs
+    have fact₁ := subset_of_vars_clause vars₁ vars₂ c₁ h_subs
+    have fact₂ := subset_of_vars_clause vars₁ vars₂ c₂ h_subs
+    obtain ⟨h_left, h_right⟩ := h_res
+    have h_resolve :
+        c₁.convert vars₂ fact₁ ⊆
+          C₀.convert vars₂ fact₀ ∪ ({v.toLiteral v_new_mem true} : Clause vars₂) ∧
+        c₂.convert vars₂ fact₂ ⊆
+          C₀.convert vars₂ fact₀ ∪ ({v.toLiteral v_new_mem false} : Clause vars₂) := by
+      refine ⟨?_, ?_⟩
+      · trans (C₀ ∪ ({v.toLiteral h_v_mem true} : Clause vars₁)).convert vars₂ (by aesop)
+        · grind only [loose_convert]
+        · grind [single_literal_conversion, carry_through_convert,
+                Finset.subset_of_eq, loose_convert]
+      · trans (C₀ ∪ ({v.toLiteral h_v_mem false} : Clause vars₁)).convert vars₂ (by aesop)
+        · grind only [loose_convert]
+        · grind [single_literal_conversion, carry_through_convert,
+                Finset.subset_of_eq, loose_convert]
+    refine ⟨TreeLikeResolution.resolve _ _ v v_new_mem (by aesop) π_a' π_b' h_resolve, ?_⟩
+    simp only [TreeLikeResolution.width, convert_card, sup_le_iff]
+    grind [TreeLikeResolution.width, sup_le_iff]
 
 
 private lemma clause_substitute_convert_subset {vars sub_vars}
@@ -563,8 +518,8 @@ lemma width_combine (vars) {φ : CNFFormula vars}
 
     have idea₃ :
         ∃ (π : TreeLikeResolution φ_subs_false_conv (BotClause (vars))), π.width ≤ W + 1 := by
-      obtain ⟨π_cand, h_cand_width⟩ := width_respect_convert vars₁ vars φ_subs_false_unconv
-        φ_subs_false_conv (by aesop) (by rfl) (W + 1) (BotClause vars₁) π_2 h_width_false (by aesop)
+      obtain ⟨π_cand, h_cand_width⟩ := width_respect_convert vars₁ vars (W + 1)
+        φ_subs_false_unconv φ_subs_false_conv (by aesop) (by rfl) π_2 h_width_false
       change TreeLikeResolution φ_subs_false_conv (BotClause vars) at π_cand
       exact ⟨π_cand, h_cand_width⟩
 
