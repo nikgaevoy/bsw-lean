@@ -154,34 +154,10 @@ lemma var_in_vars_of_in_sdiff {vars sub_vars : Variables} {var : Variable}
     (h_4 : var ∈ vars \ sub_vars) : var ∈ vars := by
   grind
 
-lemma resolve_combined_le_c1 (vars sub_vars : Variables) (var : Variable)
-    (ρ : Assignment sub_vars) (c_1 c_2 c_3 : Clause (vars \ sub_vars))
-    (h_4 : var ∈ vars \ sub_vars)
-    (inter_proof : Finset.disjUnion (vars \ sub_vars) sub_vars Finset.sdiff_disjoint = vars)
-    (var_incl : var ∈ vars)
-    (left : c_2 ⊆ c_1 ∪ {var.toLiteral h_4 true})
-    (right : c_3 ⊆ c_1 ∪ {var.toLiteral h_4 false}) :
-    Finset.card (((Clause.combine c_2 ρ.toClause Finset.sdiff_disjoint).convert_trivial
-     vars inter_proof).resolve
-      ((Clause.combine c_3 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars
-        inter_proof) var var_incl) ≤
-    Finset.card ((Clause.combine c_1 ρ.toClause Finset.sdiff_disjoint).convert_trivial
-       vars inter_proof) := by
-  have idea₃ := inter_idea_new_version vars sub_vars
-    (var.toLiteral h_4 true) ρ c_1 c_2 inter_proof var_incl left
-  have idea₄ := inter_idea_new_version vars sub_vars
-     (var.toLiteral h_4 false) ρ c_1 c_3 inter_proof var_incl right
-  simp only [ge_iff_le]
-  exact resolve_subsets_trick var vars
-    ((Clause.combine c_1 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars inter_proof)
-    ((Clause.combine c_2 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars inter_proof)
-    ((Clause.combine c_3 ρ.toClause Finset.sdiff_disjoint).convert_trivial vars inter_proof)
-    (by grind) idea₃ idea₄
-
-lemma resolve_ineq (vars sub_vars) (φ : CNFFormula vars) (var : Variable)
-    (ρ : Assignment sub_vars) (c_1 c_2 c_3 : Clause (vars \ sub_vars))
+lemma resolve_ineq {vars sub_vars} {φ : CNFFormula vars} {var : Variable}
+    {ρ : Assignment sub_vars} {c_1 c_2 c_3 : Clause (vars \ sub_vars)}
     (h_subset : sub_vars ⊆ vars)
-    (h_4 : var ∈ vars \ sub_vars) (h_0 : var ∉ c_1.variables)
+    {h_4 : var ∈ vars \ sub_vars} (h_0 : var ∉ c_1.variables)
     (p_1 : TreeLikeResolution (φ.substitute ρ) c_2)
     (p_2 : TreeLikeResolution (φ.substitute ρ) c_3)
     (left : c_2 ⊆ c_1 ∪ {var.toLiteral h_4 true})
@@ -189,35 +165,23 @@ lemma resolve_ineq (vars sub_vars) (φ : CNFFormula vars) (var : Variable)
     Finset.card ((TreeLikeResolution.resolve c_2 c_3 var h_4 h_0 p_1 p_2
     (⟨left, right⟩)).unsubstitute_rhs ρ) ≤
     max (Finset.card c_1) (max p_1.width p_2.width) + Finset.card sub_vars := by
-  unfold TreeLikeResolution.unsubstitute_rhs
-  simp
-
   have inter_proof := sdiff_disjUnion_eq_vars h_subset
   have var_incl := var_in_vars_of_in_sdiff h_4
-
-  -- 1st Bound: Subset relation of unsubstitutions
-  trans Finset.card (((Clause.combine c_2 ρ.toClause Finset.sdiff_disjoint).convert_trivial
-     vars inter_proof).resolve
-    ((Clause.combine c_3 ρ.toClause
-    Finset.sdiff_disjoint).convert_trivial vars inter_proof) var var_incl)
-  · clear left right c_1 h_0
+  have key := (resolve_subsets_trick var vars _ _ _ (by grind)
+    (inter_idea_new_version vars sub_vars (var.toLiteral h_4 true) ρ c_1 c_2
+      inter_proof var_incl left)
+    (inter_idea_new_version vars sub_vars (var.toLiteral h_4 false) ρ c_1 c_3
+      inter_proof var_incl right)).trans (card_combination c_1)
+  have bridge : Finset.card ((TreeLikeResolution.resolve c_2 c_3 var h_4 h_0 p_1 p_2
+      ⟨left, right⟩).unsubstitute_rhs ρ) ≤
+      Finset.card (((c_2.combine ρ.toClause Finset.sdiff_disjoint).convert_trivial
+          vars inter_proof).resolve
+        ((c_3.combine ρ.toClause Finset.sdiff_disjoint).convert_trivial vars inter_proof)
+        var var_incl) := by
     apply Finset.card_le_card
-    grind only [TreeLikeResolution.unsubstitute_rhs_variables, resolve_subsets]
-
-  -- 2nd Bound: Setup the upper maximum bound
-  trans Finset.card c_1 + Finset.card sub_vars
-  swap
-  · simp_all only [add_le_add_iff_right, le_sup_left]
-
-  -- 3rd Bound: Substitute the combined c_1 cardinality
-  trans Finset.card ((Clause.combine c_1 ρ.toClause Finset.sdiff_disjoint).convert_trivial
-    vars inter_proof)
-  swap
-  · exact card_combination c_1
-
-  -- Final Step: Bounding the c_2/c_3 resolve combination by c_1 combination
-  exact resolve_combined_le_c1
-    vars sub_vars var ρ c_1 c_2 c_3 h_4 inter_proof var_incl left right
+    grind only [TreeLikeResolution.unsubstitute_rhs, TreeLikeResolution.unsubstitute_rhs_variables,
+      resolve_subsets]
+  omega
 
 lemma induction_step_width_incr {vars sub_vars} {φ : CNFFormula vars} {var : Variable}
     {ρ : Assignment sub_vars} (c_1 c_2 c_3 : Clause (vars \ sub_vars))
@@ -234,13 +198,13 @@ lemma induction_step_width_incr {vars sub_vars} {φ : CNFFormula vars} {var : Va
   obtain ⟨left, right⟩ := h_1
   split
   next x x_1 h_c_in_φ heq =>
-    exact resolve_ineq vars sub_vars φ var ρ c_1 c_2 c_3 h_subset h_4 h_0 p_1 p_2 left right
+    exact resolve_ineq h_subset h_0 p_1 p_2 left right
   next x x_1 c₁ c₂ v h_v_mem_vars π₁ π₂ h_v_not_mem_c h_resolve
     heq =>
     simp_all only [sup_le_iff]
     obtain ⟨left_1, right_1⟩ := h_resolve
     apply And.intro
-    · exact resolve_ineq vars sub_vars φ var ρ c_1 c_2 c_3 h_subset h_4 h_0 p_1 p_2 left right
+    · exact resolve_ineq h_subset h_0 p_1 p_2 left right
     · constructor
       · trans p_1.width + Finset.card sub_vars
         · trans (p_1.unsubstitute ρ h_subset).width
@@ -723,4 +687,3 @@ theorem width_imply_size (W : ℕ) (W_c : ℕ)
                   _ rfl _ rfl (W + W_c - 1) π_2' (by omega) π_1' (by omega)
                   (fun C hC => (h_clause_card C hC).trans (by omega))
               exact ⟨π_final, by omega⟩
-
