@@ -67,40 +67,27 @@ lemma subset_combine {vars₁ vars₂} (c₁ c₂ : Clause vars₁) (c' : Clause
     exact Finset.disjoint_left.mp h_disj h_v₁ h_v₂
 
 lemma substitute_trivial_property_human_form {vars} {c : Clause vars} {l : Literal vars} {h} :
-    c ⊆
-    ((c.substitute (fun _ _ => ¬l.polarity : Assignment {l.variable})).get h).convert
-      vars (by
-        intro t
-        have := Literal.variable_mem_vars t
-        aesop) ∪ {l} := by
+    c ⊆ ((c.substitute (fun _ _ => ¬l.polarity : Assignment {l.variable})).get h).convert
+        vars (fun t _ => Finset.sdiff_subset (Literal.variable_mem_vars t)) ∪ {l} := by
   intro t h_t
-  simp only [Bool.not_eq_true, Bool.decide_eq_false, Finset.union_singleton, Finset.mem_insert]
+  rw [Finset.mem_union, Finset.mem_singleton]
   by_cases h_var : t.variable = l.variable
-  case pos =>
-    left
-    rw [Clause.substitute_isSome_iff_eval_subclause_false] at h
-    simp at h
-    rw [Clause.eval_eq_false_iff_all_falsified_literals] at h
-    simp only [Finset.mem_filter, Finset.mem_filterMap,
-      Option.dite_none_right_eq_some, Option.some.injEq, and_exists_self, forall_exists_index,
-      forall_and_index] at h
-
-    let t' := t.restrict (vars ∩ {l.variable}) (by aesop)
-    have := h t' t h_t (by aesop) rfl
-    have h_t' : t'.polarity = t.polarity := by aesop
-
-    by_cases l.polarity
-    all_goals by_cases t.polarity
-    all_goals simp_all [Literal.eval, Literal.variable, Literal.restrict]
-    all_goals aesop
-  case neg =>
-    right
-    unfold Clause.substitute Clause.split Clause.shrink Clause.convert
-    simp only [Finset.mem_singleton, Finset.mem_filter, Option.get_ite', Finset.mem_filterMap,
+  · right
+    rw [Clause.substitute_isSome_iff_eval_subclause_false, Bool.not_eq_true,
+        Clause.eval_eq_false_iff_all_falsified_literals] at h
+    simp only [Clause.split, Clause.shrink, Finset.mem_filter, Finset.mem_filterMap,
+      Option.dite_none_right_eq_some, Option.some.injEq, and_exists_self,
+      forall_exists_index, forall_and_index] at h
+    have h_eval := h _ t h_t (by aesop) rfl
+    refine Literal.ext h_var ?_
+    by_cases l.polarity <;> by_cases t.polarity <;>
+      simp_all [Literal.eval, Literal.restrict, Assignment.restrict]
+  · left
+    unfold Clause.convert Clause.substitute Clause.split Clause.shrink
+    simp only [Finset.mem_filter, Option.get_ite', Finset.mem_filterMap,
       Option.dite_none_right_eq_some, Option.some.injEq, and_exists_self]
     refine ⟨t.restrict (vars \ {l.variable}) (by aesop), ⟨t, by aesop⟩, ?_⟩
-    unfold Literal.convert Literal.restrict
-    aesop
+    aesop (add safe unfold [Literal.convert, Literal.restrict])
 
 
 @[aesop safe]
