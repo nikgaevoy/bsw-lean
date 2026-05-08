@@ -173,75 +173,19 @@ lemma Clause.resolve_substitute_isNone {vars sub_vars} {c₁ c₂ : Clause vars}
   simp_all only [Option.isNone_iff_eq_none]
   rw [Clause.substitute_eq_none_iff_eval_subclause_true] at *
   rw [Clause.eval_eq_true_iff_exists_satisfied_literal] at *
-  obtain ⟨l₁, ⟨h_l₁_in_c₁, h_l₁_eval⟩⟩ := h_c₁
-  obtain ⟨l₂, ⟨h_l₂_in_c₂, h_l₂_eval⟩⟩ := h_c₂
-
-  if h : l₁.variable = x ∧ l₂.variable = x then
-    have h_eq : l₁ = l₂ := by
-      suffices h_pos : l₁.polarity = l₂.polarity by
-        have : l₁.variable = l₂.variable := by aesop
-        aesop
-      aesop (add safe unfold Literal.eval)
-
-    have : l₂ ∈ ((c₁.resolve c₂ x h_x).split sub_vars).1 := by
-      simp_all only [Clause.resolve, Clause.split, Clause.shrink, Finset.mem_filterMap]
-      simp_all only [Finset.mem_filter, Option.dite_none_right_eq_some, Option.some.injEq,
-        and_exists_self, and_self, Finset.mem_union, Finset.mem_erase, ne_eq]
-
-      obtain ⟨l₁', ⟨h_l₁'_mem, h₁⟩⟩ := h_l₁_in_c₁
-      obtain ⟨l₂', ⟨h_l₂'_mem, h₂⟩⟩ := h_l₂_in_c₂
-
-      subst h
-
-      if h_pos : l₁.polarity then
-        use l₂'
-        simp_all only [and_true, exists_prop]
-        subst h₂
-        right
-        suffices l₂'.polarity by
-          grind [Variable.toLiteral]
-        aesop
-      else
-        use l₁'
-        simp_all only [and_true, exists_prop]
-        subst h₁
-        left
-        suffices ¬l₁'.polarity by
-          grind [Variable.toLiteral]
-        aesop
-    use l₂
-  else if h_var₁ : l₁.variable ≠ x then
-    have : l₁ ∈ ((c₁.resolve c₂ x h_x).split sub_vars).1 := by
-      simp_all only [Clause.split, Clause.shrink, Finset.mem_filterMap]
-      obtain ⟨l₁', ⟨h_l₁'_mem, h₁⟩⟩ := h_l₁_in_c₁
-      use l₁'
-      simp_all only [Finset.mem_filter, Option.dite_none_right_eq_some, Option.some.injEq,
-        and_exists_self, false_and, not_false_eq_true, ne_eq, and_self, ↓reduceDIte, and_true,
-        dite_eq_ite, ite_eq_left_iff, reduceCtorEq, imp_false, Decidable.not_not]
-      unfold Clause.resolve
-      simp only [Finset.mem_union, Finset.mem_erase, ne_eq]
-      left
-      have : l₁.variable = l₁'.variable := by aesop
-      grind [Variable.toLiteral]
-    use l₁
-  else
-    have h_var₂ : l₂.variable ≠ x := by aesop
-    have : l₂ ∈ ((c₁.resolve c₂ x h_x).split sub_vars).1 := by
-      unfold Clause.split Clause.shrink at *
-      simp_all only
-      rw [Finset.mem_filterMap] at h_l₂_in_c₂
-      obtain ⟨l₂', ⟨h_l₂'_mem, h₂⟩⟩ := h_l₂_in_c₂
-      rw [Finset.mem_filterMap]
-      use l₂'
-      simp_all only [Finset.mem_filter, Finset.mem_filterMap, Option.dite_none_right_eq_some,
-        Option.some.injEq, and_exists_self, and_false, not_false_eq_true, ne_eq, Decidable.not_not,
-        and_self, ↓reduceDIte, and_true, dite_eq_ite, ite_eq_left_iff, reduceCtorEq, imp_false]
-      unfold Clause.resolve
-      simp only [Finset.mem_union, Finset.mem_erase, ne_eq]
-      right
-      have : l₂.variable = l₂'.variable := by aesop
-      grind [Variable.toLiteral]
-    use l₂
+  obtain ⟨l₁, h_l₁_in, h_l₁_eval⟩ := h_c₁
+  obtain ⟨l₂, h_l₂_in, h_l₂_eval⟩ := h_c₂
+  simp only [Clause.split, Clause.shrink, Clause.resolve, Finset.mem_filterMap, Finset.mem_filter,
+    Finset.mem_union, Finset.mem_erase, Option.dite_none_right_eq_some, Option.some.injEq,
+    and_exists_self, ne_eq] at h_l₁_in h_l₂_in ⊢
+  obtain ⟨l₁', ⟨h_l₁'_in, h_l₁'_var⟩, rfl⟩ := h_l₁_in
+  obtain ⟨l₂', ⟨h_l₂'_in, h_l₂'_var⟩, rfl⟩ := h_l₂_in
+  by_cases h₁ : l₁' = x.toLiteral h_x true
+  · refine ⟨_, ⟨l₂', ⟨Or.inr ⟨?_, h_l₂'_in⟩, h_l₂'_var⟩, rfl⟩, h_l₂_eval⟩
+    rintro rfl
+    subst h₁
+    simp_all [Literal.eval, Variable.toLiteral, Literal.restrict, Literal.variable]
+  · exact ⟨_, ⟨l₁', ⟨Or.inl ⟨h₁, h_l₁'_in⟩, h_l₁'_var⟩, rfl⟩, h_l₁_eval⟩
 
 @[simp]
 lemma Clause.substitute_variables {vars sub_vars} {c : Clause vars} (ρ : Assignment sub_vars)
