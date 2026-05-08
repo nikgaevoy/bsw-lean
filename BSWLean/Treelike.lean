@@ -97,85 +97,34 @@ lemma CNFFormula.substitute_maintains_unsat {vars sub_vars} {φ : CNFFormula var
     Unsat (φ.substitute ρ') := by
   constructor
   intro ρ
-  by_contra!
-  simp only [ne_eq, Bool.not_eq_false] at this
+  by_contra! h_sat
+  simp only [ne_eq, Bool.not_eq_false] at h_sat
+  rw [eval_eq_true_iff_all_satisfied_clauses] at h_sat
 
-  let ρ_full : Assignment vars :=
-    fun v h_v_mem_vars =>
-      if h_v_mem : v ∈ sub_vars then
-        ρ' v h_v_mem
-      else
-        ρ v (by
-          refine Finset.mem_sdiff.mpr ?_
-          constructor
-          · exact h_v_mem_vars
-          · exact h_v_mem
-        )
+  let ρ_full : Assignment vars := fun v h_v =>
+    if h : v ∈ sub_vars then ρ' v h else ρ v (by aesop)
 
-  have h_restrict_in : ρ_full.restrict (sub_vars) (by exact h_subset) = ρ' := by
-    unfold ρ_full Assignment.restrict
-    simp_all
+  have h_in : ρ_full.restrict sub_vars h_subset = ρ' := by
+    funext v h_v; simp [ρ_full, Assignment.restrict, h_v]
+  have h_out : ρ_full.restrict (vars \ sub_vars) Finset.sdiff_subset = ρ := by
+    funext v h_v
+    have : v ∉ sub_vars := by aesop
+    simp [ρ_full, Assignment.restrict, this]
+  have h_inter : ρ_full.restrict (vars ∩ sub_vars) Finset.inter_subset_left =
+      ρ'.restrict (vars ∩ sub_vars) Finset.inter_subset_right := by simp [← h_in]
 
-  have h_restrict_out : ρ_full.restrict (vars \ sub_vars) (by exact Finset.sdiff_subset) = ρ := by
-    unfold ρ_full Assignment.restrict
-    simp only
-    have : ∀ v ∈ (vars \ sub_vars), v ∉ sub_vars := by aesop
-    simp_all only [↓reduceDIte]
-
-  have h_sub : ∀ c : Clause vars, c.eval ρ_full = true ↔
-      c.substitute ρ' = none ∨
-      ∃ c' : Clause (vars \ sub_vars), c.substitute ρ' = some c' ∧ c'.eval ρ = true := by
-    intro c
-    let (c_in, c_out) := c.split sub_vars
-    have h' : ρ_full.restrict (vars ∩ sub_vars) Finset.inter_subset_left =
-              ρ'.restrict (vars ∩ sub_vars) Finset.inter_subset_right := by
-      simp [←h_restrict_in]
-
-    rw [Clause.split_correctness c sub_vars ρ_full]
-
-    simp_all only [Bool.or_eq_true]
-    constructor
-
-    case mp =>
-      intro h
-      by_cases (c.split sub_vars).1.eval (ρ'.restrict (vars ∩ sub_vars) (by exact
-        Finset.inter_subset_right)) = true
-      case pos h_eval_c_in_true =>
-        left
-        rw [Clause.substitute_eq_none_iff_eval_subclause_true]
-        assumption
-      case neg h_eval_c_in_false =>
-        right
-        use (c.split sub_vars).2
-        aesop (add safe unfold Clause.substitute)
-
-    case mpr =>
-      intro h
-      cases h
-      case inl h_c_subst_none =>
-        rw [Clause.substitute_eq_none_iff_eval_subclause_true] at h_c_subst_none
-        exact Or.symm (Or.inr h_c_subst_none)
-      case inr h_exists_c_out =>
-        obtain ⟨c_out, h_c_out_eval_ρ⟩ := h_exists_c_out
-        right
-        unfold Clause.substitute at h_c_out_eval_ρ
-        simp_all
-
-  have h_eval_φ : φ.eval ρ_full = true := by
-    rw [CNFFormula.eval_eq_true_iff_all_satisfied_clauses]
-    intro c h_c_in_φ
-    rw [h_sub c]
-    by_cases h_ρ' : c.substitute ρ' = none
-    case pos =>
-      left
-      assumption
-    case neg =>
-      right
-      let c_out := (c.substitute ρ').get (by exact Option.isSome_iff_ne_none.mpr h_ρ')
-      use c_out
-      aesop (add simp CNFFormula.eval_eq_true_iff_all_satisfied_clauses)
-
-  aesop (add safe cases Unsat)
+  obtain ⟨h_unsat⟩ := h_unsat
+  have h_φ := h_unsat ρ_full
+  rw [eval_eq_false_iff_exists_falsified_clause] at h_φ
+  obtain ⟨c, h_c_in, h_c_eval⟩ := h_φ
+  rw [Clause.split_correctness c sub_vars ρ_full, h_inter, h_out,
+    Bool.or_eq_false_iff] at h_c_eval
+  obtain ⟨h_in_false, h_out_false⟩ := h_c_eval
+  have h_subst : c.substitute ρ' = some (c.split sub_vars).2 := by
+    unfold Clause.substitute; simp_all
+  have h_c_out_in : (c.split sub_vars).2 ∈ φ.substitute ρ' := by
+    unfold CNFFormula.substitute; aesop
+  exact absurd (h_sat _ h_c_out_in) (by rw [h_out_false]; decide)
 
 /-- Size of the proof. -/
 def TreeLikeResolution.size {vars} {φ : CNFFormula vars} :
