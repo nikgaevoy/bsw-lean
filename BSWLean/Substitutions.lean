@@ -119,75 +119,19 @@ lemma Clause.split_correctness {vars} (c : Clause vars) (sub_vars : Variables)
     (ρ : Assignment vars) :
     c.eval ρ = ((c.split sub_vars).1.eval (ρ.restrict (vars ∩ sub_vars) (by aesop)) ||
                 (c.split sub_vars).2.eval (ρ.restrict (vars \ sub_vars) (by aesop))) := by
-  by_cases h_c : c.eval ρ
-
-  case pos =>
-    rw [h_c]
-    simp only [Bool.true_eq, Bool.or_eq_true]
-    rw [Clause.eval_eq_true_iff_exists_satisfied_literal] at h_c
-    obtain ⟨l, h_l_in_c, h_l_eval_ρ⟩ := h_c
-    by_cases h_l_in_c_in : l.variable ∈ sub_vars
-    case pos =>
-      left
-      rw [Clause.eval_eq_true_iff_exists_satisfied_literal]
-      let l' := l.restrict (vars ∩ sub_vars) (by aesop)
-      have h_l'_in_c_in : l' ∈ (c.split sub_vars).1 := by
-        unfold Clause.split Clause.shrink
-        simp only [Finset.mem_filter, Finset.mem_filterMap, Option.dite_none_right_eq_some,
-          Option.some.injEq, and_exists_self]
-        use l
-        have : l ∈ c ∧ l.variable ∈ sub_vars := by aesop
-        use this
-      have h_l'_eval : l'.eval (ρ.restrict (vars ∩ sub_vars) (by aesop)) := by
-        unfold l'
-        aesop
-
-      use l'
-    case neg =>
-      right
-      rw [Clause.eval_eq_true_iff_exists_satisfied_literal]
-      let l' := l.restrict (vars \ sub_vars) (by aesop)
-      have h_unfold : l' = l.restrict (vars \ sub_vars) (by aesop) := by
-        rfl
-      have h_l'_in_c_in : l' ∈ (c.split sub_vars).2 := by
-        unfold Clause.split Clause.shrink
-        simp only [Finset.mem_filter, Finset.mem_filterMap, Option.dite_none_right_eq_some,
-          Option.some.injEq, and_exists_self]
-        use l
-        have : l ∈ c ∧ l.variable ∉ sub_vars := by
-          constructor
-          · assumption
-          · assumption
-        use this
-      have h_l'_eval : l'.eval (ρ.restrict (vars \ sub_vars) (by aesop)) := by
-        rw [h_unfold]
-        aesop
-
-      use l'
-
-  case neg =>
-    simp at h_c
-    rw [h_c]
-    simp only [Bool.false_eq, Bool.or_eq_false_iff]
-    constructor
-    · rw [@eval_eq_false_iff_all_falsified_literals]
-      intro l₁ h_l₁_in_c_in
-      rw [Clause.split] at h_l₁_in_c_in
-      unfold Clause.shrink at h_l₁_in_c_in
-      simp only [Finset.mem_filter, Finset.mem_filterMap, Option.dite_none_right_eq_some,
-        Option.some.injEq, and_exists_self] at h_l₁_in_c_in
-      obtain ⟨l₂, h_l₂_in_c, h_l₂_vars⟩ := h_l₁_in_c_in
-      rw [Clause.eval_eq_false_iff_all_falsified_literals] at h_c
-      aesop
-    · rw [@eval_eq_false_iff_all_falsified_literals]
-      intro l₁ h_l₁_in_c_in
-      rw [Clause.split] at h_l₁_in_c_in
-      unfold Clause.shrink at h_l₁_in_c_in
-      simp only [Finset.mem_filter, Finset.mem_filterMap, Option.dite_none_right_eq_some,
-        Option.some.injEq, and_exists_self] at h_l₁_in_c_in
-      obtain ⟨l₂, h_l₂_in_c, h_l₂_vars⟩ := h_l₁_in_c_in
-      rw [Clause.eval_eq_false_iff_all_falsified_literals] at h_c
-      aesop
+  rw [Bool.eq_iff_iff, Bool.or_eq_true, Clause.eval_eq_true_iff_exists_satisfied_literal,
+    Clause.eval_eq_true_iff_exists_satisfied_literal,
+    Clause.eval_eq_true_iff_exists_satisfied_literal]
+  unfold Clause.split Clause.shrink
+  simp only [Finset.mem_filter, Finset.mem_filterMap, Option.dite_none_right_eq_some,
+    Option.some.injEq, and_exists_self]
+  constructor
+  · rintro ⟨l, h_l, h_eval⟩
+    by_cases h_v : l.variable ∈ sub_vars
+    · exact Or.inl ⟨l.restrict _ (by aesop), ⟨l, ⟨h_l, h_v⟩, rfl⟩, by aesop⟩
+    · exact Or.inr ⟨l.restrict _ (by aesop), ⟨l, ⟨h_l, h_v⟩, rfl⟩, by aesop⟩
+  · rintro (⟨_, ⟨l, ⟨h_l, _⟩, rfl⟩, h_eval⟩ | ⟨_, ⟨l, ⟨h_l, _⟩, rfl⟩, h_eval⟩) <;>
+      exact ⟨l, h_l, by aesop⟩
 
 /-- Partial substitution to a formula. -/
 @[aesop safe [unfold]]
@@ -364,57 +308,22 @@ lemma Clause.substitute_resolve_eq_resolve_substitute {vars sub_vars} {c₁ c₂
   unfold Clause.resolve Clause.substitute Clause.split Clause.shrink
   simp_all only [Finset.mem_filter, Option.get_ite', Finset.mem_union, Finset.mem_erase, ne_eq]
   ext l
+  simp only [Finset.mem_union, Finset.mem_erase, ne_eq, Finset.mem_filterMap, Finset.mem_filter,
+    Option.dite_none_right_eq_some, Option.some.injEq, and_exists_self]
   constructor
-  · intro h_l
-    simp_all only [Finset.mem_union, Finset.mem_erase, ne_eq, Finset.mem_filterMap,
-      Finset.mem_filter, Option.dite_none_right_eq_some, Option.some.injEq, and_exists_self]
-    cases h_l
-    case h.mp.inl h =>
-      obtain ⟨h_neq, ⟨l', ⟨⟨h_l'_in, h_l'_var⟩, h_restrict⟩⟩⟩ := h
-      use l'
-      use by
-        constructor
-        swap
-        · assumption
-        grind
-    case h.mp.inr h =>
-      obtain ⟨h_neq, ⟨l', ⟨⟨h_l'_in, h_l'_var⟩, h_restrict⟩⟩⟩ := h
-      use l'
-      use by
-        constructor
-        swap
-        · assumption
-        grind
-  · intro h_l
-    simp_all only [Finset.mem_filterMap, Finset.mem_filter, Finset.mem_union, Finset.mem_erase,
-      ne_eq, Option.dite_none_right_eq_some, Option.some.injEq, and_exists_self]
-    obtain ⟨l', ⟨⟨h_l', h_l'_var⟩, h_restrict⟩⟩ := h_l
-    cases h_l'
-    case h.mpr.inl h =>
-      left
-      obtain ⟨h_l'_neq, h_l'_in⟩ := h
-      constructor
-      · by_contra!
-        rw [Literal.ext_iff] at h_l'_neq
-        simp_all only [Variable.toLiteral]
-        have : l.polarity := by grind
-        have : l.variable = v := by grind
-        have : (l'.variable = v ∧ l'.polarity) := by grind
-        contradiction
-      use l'
-      use by aesop
-    case h.mpr.inr h =>
-      right
-      obtain ⟨h_l'_neq, h_l'_in⟩ := h
-      constructor
-      · by_contra!
-        rw [Literal.ext_iff] at h_l'_neq
-        simp_all only [Variable.toLiteral]
-        have : ¬l.polarity := by grind
-        have : l.variable = v := by grind
-        have : (l'.variable = v ∧ ¬l'.polarity) := by grind
-        grind
-      use l'
-      use by aesop
+  · rintro (⟨_, l', ⟨h_l'_in, h_l'_var⟩, h_restrict⟩ |
+            ⟨_, l', ⟨h_l'_in, h_l'_var⟩, h_restrict⟩) <;>
+      exact ⟨l', ⟨by grind, h_l'_var⟩, h_restrict⟩
+  · rintro ⟨l', ⟨⟨h_l'_neq, h_l'_in⟩ | ⟨h_l'_neq, h_l'_in⟩, h_l'_var⟩, h_restrict⟩
+    · refine Or.inl ⟨?_, l', ⟨h_l'_in, h_l'_var⟩, h_restrict⟩
+      by_contra!
+      rw [Literal.ext_iff] at h_l'_neq
+      simp_all only [Variable.toLiteral]
+      grind
+    · refine Or.inr ⟨?_, l', ⟨h_l'_in, h_l'_var⟩, h_restrict⟩
+      by_contra!
+      rw [Literal.ext_iff] at h_l'_neq
+      simp_all only [Variable.toLiteral]
+      grind
 
 #lint
