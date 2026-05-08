@@ -311,19 +311,19 @@ lemma Clause.substitute_resolve_eq_resolve_substitute {vars sub_vars} {c₁ c₂
   simp only [Finset.mem_union, Finset.mem_erase, ne_eq, Finset.mem_filterMap, Finset.mem_filter,
     Option.dite_none_right_eq_some, Option.some.injEq, and_exists_self]
   constructor
-  · rintro (⟨_, l', ⟨h_l'_in, h_l'_var⟩, h_restrict⟩ |
-            ⟨_, l', ⟨h_l'_in, h_l'_var⟩, h_restrict⟩) <;>
-      exact ⟨l', ⟨by grind, h_l'_var⟩, h_restrict⟩
-  · rintro ⟨l', ⟨⟨h_l'_neq, h_l'_in⟩ | ⟨h_l'_neq, h_l'_in⟩, h_l'_var⟩, h_restrict⟩
-    · refine Or.inl ⟨?_, l', ⟨h_l'_in, h_l'_var⟩, h_restrict⟩
-      by_contra!
-      rw [Literal.ext_iff] at h_l'_neq
-      simp_all only [Variable.toLiteral]
-      grind
-    · refine Or.inr ⟨?_, l', ⟨h_l'_in, h_l'_var⟩, h_restrict⟩
-      by_contra!
-      rw [Literal.ext_iff] at h_l'_neq
-      simp_all only [Variable.toLiteral]
-      grind
+  · rintro (⟨h_neq, l', ⟨h_l'_in, h_l'_var⟩, rfl⟩ |
+            ⟨h_neq, l', ⟨h_l'_in, h_l'_var⟩, rfl⟩) <;>
+      refine ⟨l', ⟨?_, h_l'_var⟩, rfl⟩ <;>
+      [exact Or.inl ⟨fun h => h_neq (by subst h; rfl), h_l'_in⟩;
+       exact Or.inr ⟨fun h => h_neq (by subst h; rfl), h_l'_in⟩]
+  · rintro ⟨l', ⟨⟨h_l'_neq, h_l'_in⟩ | ⟨h_l'_neq, h_l'_in⟩, h_l'_var⟩, rfl⟩
+    · exact Or.inl ⟨fun h => h_l'_neq (by
+        rw [Literal.ext_iff] at h ⊢
+        simpa [Variable.toLiteral, Literal.restrict, Literal.variable] using h),
+        l', ⟨h_l'_in, h_l'_var⟩, rfl⟩
+    · exact Or.inr ⟨fun h => h_l'_neq (by
+        rw [Literal.ext_iff] at h ⊢
+        simpa [Variable.toLiteral, Literal.restrict, Literal.variable] using h),
+        l', ⟨h_l'_in, h_l'_var⟩, rfl⟩
 
 #lint
